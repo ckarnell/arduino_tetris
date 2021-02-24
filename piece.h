@@ -63,8 +63,8 @@ class Tetromino {
 
 class TPiece: public Tetromino {
   public:
-    char symbol[1] = {'T'};
-    /* color = "purple"; */
+    /* wstring symbol = L"T"; */
+    /* string color = "purple"; */
     int symbolNum = 64 + 20;
     int dimension = 3;
 
@@ -103,7 +103,7 @@ class TPiece: public Tetromino {
       }
     };
 
-    void getOrientation(int orientation, int mutableResult[3][3]) {
+    void getOrientation(int orientation, int mutableResult[4][4]) {
       mutableResult[0][0] = orientations[orientation][0][0];
       mutableResult[0][1] = orientations[orientation][0][1];
       mutableResult[0][2] = orientations[orientation][0][2];
@@ -193,9 +193,9 @@ class SPiece: public Tetromino {
       return dimension;
     }
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -314,9 +314,9 @@ class ZPiece: public Tetromino {
       return dimension;
     }
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -436,9 +436,9 @@ class IPiece: public Tetromino {
     }
     /* /1* string color = "cyan"; *1/ */
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -569,9 +569,9 @@ class LPiece: public Tetromino {
       return dimension;
     }
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* Elements<Elements<int> > getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -690,9 +690,9 @@ class JPiece: public Tetromino {
       return dimension;
     }
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -811,9 +811,9 @@ class OPiece: public Tetromino {
     }
     /* string color = "yellow"; */
 
-    /* virtual int getSymbol() { */
-    /*   return symbolNum; */
-    /* } */
+    virtual int getSymbol() {
+      return symbolNum;
+    }
 
     /* getPieceOrientation(int orientation) { */
     /*   return orientations[orientation]; */
@@ -985,6 +985,8 @@ class PieceBag {
       /* srand (time(NULL)); */
       /* randomNumber(7); */
 
+      random(10);
+      random(10);
       tetrominos[0] = new TPiece;
       tetrominos[1] = new SPiece;
       tetrominos[2] = new ZPiece;

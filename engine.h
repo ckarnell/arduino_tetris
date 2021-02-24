@@ -16,6 +16,7 @@ const int MAIN_MATRIX_HEIGHT = 20;
 const int MAIN_MATRIX_WIDTH = 10;
 const int BUFFER_ZONE_HEIGHT = 20;
 const int BORDER_SIZE = 1;
+const int CURRENT_PIECE_CHAR = 2;
 
 float getSpeedInMillisecondsByLevel(int level)
 {
@@ -31,9 +32,10 @@ class TetrisEngine {
     Tetromino* currentPiece;
 
     int currentTime = millis();
+    bool firstIteration = true;
 
     // Piece creation
-    bool readyToGenerate = true;
+    bool justLocked = false;
 
     // Score
     int score = 0;
@@ -60,7 +62,18 @@ class TetrisEngine {
     unsigned char *matrixRepresentation = nullptr;
     int pastCoordinates[4] = {-1, -1, -1, -1};
 
-    void renderForCli() {
+    void drawPieceOnBoard() {
+      /* char pieceSym = currentPiece -> getSymbol(); */
+      if (justLocked) {
+        if (pastCoordinates[0] != -1) {
+          for (int i = 0; i < 4; i++) {
+            matrixRepresentation[pastCoordinates[i]] = 1; // TODO: Replace with better symbol
+            pastCoordinates[i] = -1;
+          }
+        }
+        return;
+      }
+
       // Undraw past coordinates for the current piece, if it has them.
       if (pastCoordinates[0] != -1) {
         for (int i = 0; i < 4; i++) {
@@ -78,13 +91,16 @@ class TetrisEngine {
         for (int x = 0; x < currentDimension; x++) {
           int minoRepresentation = pieceOrientation[y][x];
           if (minoRepresentation == 1) {
-            matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = minoRepresentation;
+            matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = CURRENT_PIECE_CHAR;
             pastCoordinates[whichPastCoord] = (y + currentY)*fieldWidth + (x + currentX);
             whichPastCoord++;
           }
         }
       }
 
+    }
+
+    void renderForCli() {
       for(int y = BUFFER_ZONE_HEIGHT; y < fieldHeight; y++) {
         /* if (y % MAIN_MATRIX_HEIGHT == 0) { */
         /*   Serial.print("\n"); */
@@ -100,13 +116,16 @@ class TetrisEngine {
     }
 
     void generation() {
+      if (DEBUG) {
+        Serial.println("GENERATING");
+      }
       currentPiece = bag.getNextPiece();
       orientation = 0;
       currentX = 4;
       currentY = 40 - 21;
       lockDownTimerMs = LOCK_DOWN_TIMER;
-      readyToGenerate = true;
       lockDownMaxY = -100;
+      lockingDownAt = -1;
     }
 
     bool isCollisionDetected(int newX, int newY, int newOrientation) {
@@ -121,24 +140,20 @@ class TetrisEngine {
       /* Serial.println(newY); */
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
-          int oldMinoRepresentation = currentPieceOrientation[y][x];
+          /* int oldMinoRepresentation = currentPieceOrientation[y][x]; */
           int newMinoRepresentation = newPieceOrientation[y][x];
           //  Check for 0 so we're not comparing squares that are occupied by the current piece
-          if (oldMinoRepresentation == 0) {
-            int thisY = (y + newY)*fieldWidth;
-            int thisX = x + newX;
-            int matrixMino = matrixRepresentation[thisY + thisX];
+          int thisY = (y + newY)*fieldWidth;
+          int thisX = x + newX;
+          int matrixMino = matrixRepresentation[thisY + thisX];
 
-            if (matrixMino != 0) {
-              // This is a part of the matrix that is actually occupied
+          if (matrixMino != 0 && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
+            // This is a part of the matrix that is actually occupied
+            if (DEBUG) {
               Serial.println(y + newY);
               Serial.println(x + newX);
-              return true;
             }
-            /* if (matrixRepresentation[thisY + thisX]) { */
-            /*   // This part of the field is not 0, meaning a collision is detected */
-            /*   return true; */
-            /* } */
+            return true;
           }
         }
         /* Serial.println(""); */
@@ -179,12 +194,11 @@ class TetrisEngine {
     }
 
     bool shouldPieceLock() {
-      /* int lastDrop = currentTime; */
-      /* float dropAfter = getSpeedInMillisecondsByLevel(currentLevel); */
-      /* int lockDownTimerMs = LOCK_DOWN_TIMER; */
+      return lockDownTimerMs <= 0;
     }
 
     void handlePieceLock() {
+      justLocked = true;
     }
 
     bool shouldPieceTryToFall() {
@@ -194,7 +208,9 @@ class TetrisEngine {
     void handlePieceTryToFall() {
       bool collisionDetected = isCollisionDetected(currentX, currentY + 1, orientation);
       if (!collisionDetected) {
+        // No collision, actually drop
         currentY++;
+        lastDrop = currentTime;
         lockingDownAt = -1;
         return;
       }
@@ -220,10 +236,13 @@ class TetrisEngine {
 
       // Update global state
       currentTime = millis();
+      Serial.print("LOCK: ");
+      Serial.println(lockDownTimerMs);
 
-      if (readyToGenerate) {
+      if (justLocked || firstIteration) {
         generation();
-        readyToGenerate = false;
+        justLocked = false;
+        firstIteration = false;
       }
 
       updateLockDownTimer();
@@ -234,11 +253,20 @@ class TetrisEngine {
       if (shouldPieceLock()) {
         handlePieceLock();
       } else if (shouldPieceTryToFall()) {
+        Serial.println("FALLING");
         handlePieceTryToFall();
       }
 
-      /* currentPiece = bag.getNextPiece(); */
+      drawPieceOnBoard();
+
       if (DEBUG) {
+        Serial.print("Piece: ");
+        char pieceSym = currentPiece -> getSymbol();
+        Serial.println(pieceSym);
+        Serial.print("X: ");
+        Serial.println(currentX);
+        Serial.print("Y: ");
+        Serial.println(currentY);
         renderForCli();
       }
 
@@ -271,7 +299,6 @@ class TetrisEngine {
             // This is the last row of the board, every character on this row is a border character.
             matrixRepresentation[y*fieldWidth + x] = 1;
           }
-          /* matrixRepresentation[y*fieldWidth + x] = (x == 0 || x == fieldWidth - 1 || y == fieldHeight - 1) ? 1 : 0; */
         }
       }
     }
