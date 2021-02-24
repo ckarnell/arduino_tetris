@@ -3,20 +3,20 @@
 /* Debug with `sudo gdb ./engineprog` */
 
 #include <math.h>
-#include "piece.h"
+#include "newPiece.h"
 #include "controller.h"
-using namespace std;
+/* using namespace std; */
 
 #include <stdio.h>
 
 const int LOCK_DOWN_TIMER = 500;
-const bool DEBUG = true;
+const bool DEBUG = false;
 
 const int MAIN_MATRIX_HEIGHT = 20;
 const int MAIN_MATRIX_WIDTH = 10;
-const int BUFFER_ZONE_HEIGHT = 20;
+const int BUFFER_ZONE_HEIGHT = 4;
 const int BORDER_SIZE = 1;
-const int CURRENT_PIECE_CHAR = 2;
+const int CURRENT_PIECE_CHAR = 9;
 
 float getSpeedInMillisecondsByLevel(int level)
 {
@@ -25,13 +25,17 @@ float getSpeedInMillisecondsByLevel(int level)
   return timeInMilliseconds;
 }
 
+
 class TetrisEngine {
   public:
+    /* PieceBag bag; */
+    GameController gameController = GameController(300);
+    Tetromino currentPiece;
     PieceBag bag;
-    GameController gameController = GameController(0);
-    Tetromino* currentPiece;
 
     int currentTime = millis();
+    int lastDraw = currentTime - 1001;
+    bool gameOver = false;
     bool firstIteration = true;
 
     // Piece creation
@@ -59,19 +63,27 @@ class TetrisEngine {
     int currentY;
     int orientation = 0;
 
+    // Board state
     unsigned char *matrixRepresentation = nullptr;
     int pastCoordinates[4] = {-1, -1, -1, -1};
+    // Use this to compute drop locations faster
+    int lowestOccupiedYValues[12] = {-100, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, -100};
 
     void drawPieceOnBoard() {
+      int currentDimension = currentPiece.dimension;
+      /* int pieceOrientation[4][4]; */
+      /* currentPiece -> getOrientation(orientation, pieceOrientation); */
+
       /* char pieceSym = currentPiece -> getSymbol(); */
       if (justLocked) {
-        if (pastCoordinates[0] != -1) {
-          for (int i = 0; i < 4; i++) {
-            matrixRepresentation[pastCoordinates[i]] = 1; // TODO: Replace with better symbol
-            pastCoordinates[i] = -1;
+        for (int y = currentDimension - 1; y >= 0; y--) {
+          for (int x = 0; x < currentDimension; x++) {
+            int minoRepresentation = currentPiece.orientations[orientation][y][x];
+            if (minoRepresentation == 1) {
+              lowestOccupiedYValues[x + currentX] = y + currentY;
+            }
           }
         }
-        return;
       }
 
       // Undraw past coordinates for the current piece, if it has them.
@@ -82,22 +94,24 @@ class TetrisEngine {
       }
 
       // Draw new coordinates and save them as past coordinates.
-      int currentDimension = currentPiece -> getDimension();
-      int pieceOrientation[4][4];
-      currentPiece -> getOrientation(orientation, pieceOrientation);
-
       int whichPastCoord = 0;
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
-          int minoRepresentation = pieceOrientation[y][x];
+          int minoRepresentation = currentPiece.orientations[orientation][y][x];
           if (minoRepresentation == 1) {
-            matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = CURRENT_PIECE_CHAR;
-            pastCoordinates[whichPastCoord] = (y + currentY)*fieldWidth + (x + currentX);
+            int charToDraw = justLocked ? currentPiece.symbolNum : CURRENT_PIECE_CHAR;
+            matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = charToDraw;
+            int pastCoord = justLocked ? -1 : (y + currentY)*fieldWidth + (x + currentX);
+            pastCoordinates[whichPastCoord] = pastCoord;
             whichPastCoord++;
           }
         }
       }
 
+    }
+
+    bool shouldDebugPrint() {
+      return (DEBUG && currentTime - lastDraw > 1000);
     }
 
     void renderForCli() {
@@ -111,18 +125,19 @@ class TetrisEngine {
         for(int x = 0; x < fieldWidth; x++) {
           Serial.print(matrixRepresentation[y*fieldWidth + x]);
         }
-        Serial.print("\n");
+        Serial.println("");
       }
+      Serial.println("");
     }
 
     void generation() {
-      if (DEBUG) {
+      if (shouldDebugPrint()) {
         Serial.println("GENERATING");
       }
-      currentPiece = bag.getNextPiece();
+      currentPiece = *bag.getNextPiece();
       orientation = 0;
       currentX = 4;
-      currentY = 40 - 21;
+      currentY = BUFFER_ZONE_HEIGHT;
       lockDownTimerMs = LOCK_DOWN_TIMER;
       lockDownMaxY = -100;
       lockingDownAt = -1;
@@ -130,18 +145,15 @@ class TetrisEngine {
 
     bool isCollisionDetected(int newX, int newY, int newOrientation) {
       bool collisionDetected = false;
-      int currentDimension = currentPiece -> getDimension();
+      int currentDimension = currentPiece.dimension;
 
+      /* int newPieceOrientation[4][4] = currentPiece.orientations[newOrientation]; */
+      /* /1* currentPiece -> getOrientation(newOrientation, newPieceOrientation); *1/ */
 
-      int newPieceOrientation[4][4];
-      currentPiece -> getOrientation(newOrientation, newPieceOrientation);
-
-      /* Serial.println(newX); */
-      /* Serial.println(newY); */
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
           /* int oldMinoRepresentation = currentPieceOrientation[y][x]; */
-          int newMinoRepresentation = newPieceOrientation[y][x];
+          int newMinoRepresentation = currentPiece.orientations[newOrientation][y][x];
           //  Check for 0 so we're not comparing squares that are occupied by the current piece
           int thisY = (y + newY)*fieldWidth;
           int thisX = x + newX;
@@ -149,7 +161,7 @@ class TetrisEngine {
 
           if (matrixMino != 0 && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
             // This is a part of the matrix that is actually occupied
-            if (DEBUG) {
+            if (shouldDebugPrint()) {
               Serial.println(y + newY);
               Serial.println(x + newX);
             }
@@ -163,6 +175,16 @@ class TetrisEngine {
     }
 
     void rotateAndMove() {
+      if (gameController.dropPressed) {
+        // Set currentY to the lowest Y below the current piece that is not occupied
+        int yToDrop = 0;
+        while (!isCollisionDetected(currentX, currentY + yToDrop + 1, orientation)) {
+          yToDrop++;
+        }
+        currentY += yToDrop;
+        return;
+      }
+
       if (gameController.leftPressed || gameController.leftDas) {
         if (!isCollisionDetected(currentX - 1, currentY, orientation)) {
           currentX--; // TODO: Use hit detection here
@@ -193,12 +215,34 @@ class TetrisEngine {
       }
     }
 
-    bool shouldPieceLock() {
-      return lockDownTimerMs <= 0;
+    bool isLockedOut() {
+      // This is a game over condition that occurs when a piece locks without any of its
+      // squares being in the game field, i.e. they're all in the buffer zone.
+      if (!justLocked) {
+        return false;
+      }
+
+      int currentDimension = currentPiece.dimension;
+      /* int currentPieceOrientation[4][4]; */ // TODO: Delete these
+      /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
+      /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
+
+      for (int y = 0; y < currentDimension; y++) {
+        for (int x = 0; x < currentDimension; x++) {
+          if (currentPiece.orientations[orientation][y][x] == 1) {
+            if (currentY + y > BUFFER_ZONE_HEIGHT) {
+              // This mino is in the game field, so there's no lockout
+              return false;
+            }
+          }
+        }
+      }
+
+      return true;
     }
 
-    void handlePieceLock() {
-      justLocked = true;
+    bool shouldPieceLock() {
+      return lockDownTimerMs <= 0 || gameController.dropPressed;
     }
 
     bool shouldPieceTryToFall() {
@@ -236,8 +280,10 @@ class TetrisEngine {
 
       // Update global state
       currentTime = millis();
-      Serial.print("LOCK: ");
-      Serial.println(lockDownTimerMs);
+      if (shouldDebugPrint()) {
+        Serial.print("LOCK: ");
+        Serial.println(lockDownTimerMs);
+      }
 
       if (justLocked || firstIteration) {
         generation();
@@ -251,17 +297,30 @@ class TetrisEngine {
       rotateAndMove();
 
       if (shouldPieceLock()) {
-        handlePieceLock();
+        justLocked = true;
+
+        // TODO: Handle line removal. REMEMBER TO CHANGE lowestOccupiedYValues
+        // TODO: Handle score update
+        // The game could be over if we just locked a piece
+        gameOver = isLockedOut();
       } else if (shouldPieceTryToFall()) {
-        Serial.println("FALLING");
+        if (shouldDebugPrint()) {
+          Serial.println("FALLING");
+        }
         handlePieceTryToFall();
       }
 
       drawPieceOnBoard();
 
-      if (DEBUG) {
+      if (shouldDebugPrint()) {
+        for (int i = 0; i < 12; i++) {
+          Serial.print(lowestOccupiedYValues[i]);
+          Serial.print(" ");
+        }
+        Serial.println("");
+
         Serial.print("Piece: ");
-        char pieceSym = currentPiece -> getSymbol();
+        char pieceSym = currentPiece.symbolNum;
         Serial.println(pieceSym);
         Serial.print("X: ");
         Serial.println(currentX);
@@ -270,14 +329,14 @@ class TetrisEngine {
         renderForCli();
       }
 
-      // input // TODO: Handle input
-      // update state
-      // render?
-
-      return true;
+      if (shouldDebugPrint()) {
+        lastDraw = currentTime; // For CLI debugging
+      }
+      return gameOver;
     }
 
     TetrisEngine() {
+      random();
       bag = PieceBag();
 
       // Create initial board representation, which is empty except for boarders.
@@ -288,7 +347,6 @@ class TetrisEngine {
         for (int x = 0; x < fieldWidth; x++) { // Board Boundary
           // "1" represents a border, "0" is anything else.
           matrixRepresentation[y*fieldWidth + x] = 0;
-
           if (x == 0) {
             // This is the first element of the line, it's a border character.
             matrixRepresentation[y*fieldWidth + x] = 1;
@@ -299,6 +357,9 @@ class TetrisEngine {
             // This is the last row of the board, every character on this row is a border character.
             matrixRepresentation[y*fieldWidth + x] = 1;
           }
+
+
+         
         }
       }
     }

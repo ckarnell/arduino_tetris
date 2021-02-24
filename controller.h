@@ -16,7 +16,7 @@ class GameController {
     bool rightPressed;
     bool leftDas;
     bool rightDas;
-    int drop;
+    int dropPressed;
     bool clockwisePressed = false;
     bool counterClockwisePressed = false;
 
@@ -29,7 +29,7 @@ class GameController {
       rightPressed = false;
       leftDas = false;
       rightDas = false;
-      drop = false;
+      dropPressed = false;
       // -1 is a sentinal value here, implying the button isn't pushed at all
       leftPressedAt = -1;
       rightPressedAt = -1;
@@ -37,7 +37,8 @@ class GameController {
 
     void updateControls(Controls controls, int currentTime) {
       if (controls.left) {
-        if (!leftPressed) {
+        if (leftPressedAt == -1) {
+          // It was pressed this iteration
           leftPressed = true;
           leftPressedAt = currentTime;
         } else {
@@ -45,7 +46,7 @@ class GameController {
           leftPressed = false;
 
           // That means this was held - check for das
-          if (currentTime - leftPressedAt > _dasDelay) {
+          if (leftPressedAt != -1 && (currentTime - leftPressedAt > _dasDelay)) {
             leftDas = true;
           }
         }
@@ -56,15 +57,16 @@ class GameController {
       }
 
       if (controls.right) {
-        if (!rightPressed) {
+        if (leftPressedAt == -1) {
+          // It was pressed this iteration
           rightPressed = true;
           rightPressedAt = currentTime;
         } else {
-          // right was not pressed this iteration, set value to false
+          // Right was not pressed this iteration, set value to false
           rightPressed = false;
 
           // That means this was held - check for das
-          if (currentTime - rightPressedAt > _dasDelay) {
+          if (rightPressedAt != -1 && currentTime - rightPressedAt > _dasDelay) {
             rightDas = true;
           }
         }
@@ -74,21 +76,20 @@ class GameController {
         rightPressedAt = -1;
       }
 
-      clockwisePressed = controls.rotateClockwise;
-      /* if (controls.rotateClockwise) { */
-      /*   if (!clockwisePressed) { */
-      /*     clockwisePressed = true; */
-      /*     clockwiseHeld = true; */
-      /*   } else { */
-      /*     clockwisePressed = false; */
-      /*   } */
-      /* } else { */
-      /*   clockwisePressed = false; */
-      /*   clockwiseHeld = false; */
-      /* } */
+      if (controls.rotateClockwise) {
+        if (!clockwiseHeld) {
+          clockwisePressed = true;
+          clockwiseHeld = true;
+        } else {
+          clockwisePressed = false;
+        }
+      } else {
+        clockwisePressed = false;
+        clockwiseHeld = false;
+      }
 
       if (controls.rotateCounterClockwise) {
-        if (!counterClockwisePressed) {
+        if (!counterClockwiseHeld) {
           counterClockwisePressed = true;
           counterClockwiseHeld = true;
         } else {
@@ -98,6 +99,18 @@ class GameController {
         counterClockwisePressed = false;
         counterClockwiseHeld = false;
       }
+
+      if (controls.up) {
+        if (!dropHeld) {
+          dropHeld = true;
+          dropPressed = true;
+        } else {
+          dropPressed = false;
+        }
+      } else {
+        dropHeld = false;
+        dropPressed = false;
+      }
     }
 
   private:
@@ -106,6 +119,6 @@ class GameController {
     int rightPressedAt;
     int clockwiseHeld;
     int counterClockwiseHeld;
-    bool dropPressedAt = -1;
+    bool dropHeld = false;
     int _dasDelay;
 };

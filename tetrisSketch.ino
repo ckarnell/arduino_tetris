@@ -1,45 +1,161 @@
 #include "engine.h"
-#define joySw A0
-#define joyY A1
-#define joyX A2
+#include <RGBmatrixPanel.h>
 
-int currentTime;
+// Joystick
+#define joySw A6
+#define joyY A7
+#define joyX A8
 
-void setup() {
-  // put your setup code here, to run once:
-//  Serial.begin(9600);
-  Serial.begin(9875);
-//  Serial.println("Hello World!");
-  randomSeed(analogRead(3));
-//  randomSeed(millis());
-  currentTime = millis();
-}
+// LED Matrix
+#define CLK 11 // USE THIS ON ARDUINO MEGA
+#define OE   9
+#define LAT 10
+#define A   A0
+#define B   A1
+#define C   A2
+#define D   A3
 
 TetrisEngine tetrisEngine = TetrisEngine();
-bool oneLoop = true;
+
+const int SQUARE_WIDTH = 3;
+
+RGBmatrixPanel matrix(A, B, C, D, CLK, LAT, OE, false, 64);
+
+const int PIXEL_OFFSET_X = 1;
+const int PIXEL_OFFSET_Y = 4;
+
+const int CYAN   = matrix.Color333(0,4,7); // 1183
+const int VIOLET = matrix.Color333(4,0,7); // -28641
+const int RED    = matrix.Color333(7,0,0); // -2048
+const int YELLOW = matrix.Color333(7,4,0); // -896
+const int GREEN  = matrix.Color333(0,7,0); // 2016
+const int ORANGE = matrix.Color333(7,2,0); // -1472
+const int BLUE   = matrix.Color333(0,0,7);
+
+int adjustYCoord(int yCoord) {
+  // We want y = 20 to appear at 60 on the led board,
+  // but we want y = 40 to appear at 0 on the led board,
+  // a linear function.
+  // f(BUFFER_HEIGHT) = 60
+  // f(24) = 0
+  int result = (MAIN_MATRIX_HEIGHT+BUFFER_ZONE_HEIGHT+BORDER_SIZE)*SQUARE_WIDTH; // Start with the max height
+  result -= yCoord*SQUARE_WIDTH;
+  return result;
+}
+
+void drawSquareNew(int xCoord, int yCoord, int color) {
+  int adjustedYCoord = adjustYCoord(yCoord) - SQUARE_WIDTH + PIXEL_OFFSET_Y; // Subtract 3 since the origin is seen as lower left instead of top left
+//  if (adjustedYCoord > matrix.height()) {
+//    // Nothing to draw if we're outside of the boord
+//    return;
+//  }
+  int adjustedXCoord = ((xCoord - 1) * 3) + PIXEL_OFFSET_X;
+//  int adjustedY = yCoord;
+//  Serial.print("Adj Y: ");
+//  Serial.println(adjustedYCoord);
+//  Serial.print("Adj X: ");
+//  Serial.println(adjustedXCoord);
+  matrix.fillRect(adjustedYCoord, adjustedXCoord, SQUARE_WIDTH, SQUARE_WIDTH, color);
+//  Serial.println("DELAYING");
+//  delay(500);
+}
+
+//void drawSquare(int xCoord, int yCoord, int color) {
+//  matrix.fillRect(yCoord, xCoord, SQUARE_WIDTH, SQUARE_WIDTH, color);
+//}
+
+const int colorMap[9] = {0, 1, VIOLET, GREEN, RED, CYAN, ORANGE, BLUE, YELLOW};
+
+bool gameOver = false;
+
+void setup() {
+  matrix.begin();
+  Serial.begin(9875);
+//  randomSeed(analogRead(3));
+  randomSeed(millis());
+}
+
+bool firstIteration = true;
+unsigned char *matrixRepresentationCopy = nullptr;
+//int iterations = 100;
+
+struct Controls controls;
 
 void loop() {
-  // put your main code here, to run repeatedly:
   int xValue = analogRead(joyX); // > 766 = right, <256 = left
-  int yValue = analogRead(joyY); // 511 by default, >766 = down, <256 = up
+  int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
   int swValue = analogRead(joySw); // 0 when pushed, random otherwise
-
-  struct Controls controls = {
-    xValue > 766,
-    xValue < 256,
-    yValue < 256,
-    yValue > 766,
-    swValue == 0,
-    false,
-    false,
-    false,
+  
+  controls = {
+    xValue > 766, // Right
+    xValue < 256, // Left
+    yValue < 100, // Up
+    yValue > 766, // Down
+    swValue == 0, // Clockwise
+    false, // Counter clockwise
+    false, // Rotate 180
+    false, // Hold
   };
 
-  if (oneLoop) {
-//    oneLoop = false;
-    Serial.println("");
-    tetrisEngine.loop(controls);
-    delay(1000);
+//  if (gameOver) {
+//    Serial.println("Game over");
+//  }
+  gameOver = true;
+  if (!gameOver) {
+//    iterations--;
+    gameOver = tetrisEngine.loop(controls);
+
+//    drawSquareNew(startCoord[0], startCoord[1], 0);
+    // Print board
+    for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
+      for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
+        int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
+
+        // Only draw if the value has changed or if it's the first iteration.
+//        if (!firstIteration && currentNum == matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x]) {
+//          continue;
+//        }
+
+        int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
+        int currentColor = colorMap[currentColorInd];
+        if (currentColor == 1) {
+          // Debugging
+          continue;
+        }
+        
+        if (currentColor != 1) { // Don't draw borders
+//          Serial.print("X: ");
+//          Serial.print(x);
+//          Serial.print(" Y: ");
+//          Serial.print(y);
+//          Serial.print(" C: ");
+//          Serial.print(currentColor);
+//          Serial.println("");
+          drawSquareNew(x, y, currentColor);
+        }// else {
+//          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
+//        }
+      }
+    }
+//    tetrisEngine.loop(controls);
+    
+    firstIteration = false;
+//    for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
+////      Serial.println("HERE");
+////      delay(5000);
+//      for(int x = 1; x < tetrisEngine.fieldWidth; x++) {
+//        matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x] = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
+//      }
+//    }
+    
+//    Serial.println("NEW ITERATION");
   }
-  //  Serial.println();
+
+  ////  if (gameOver) {
+//    oneLoop = false;
+////    Serial.println("");
+//    gameOver = tetrisEngine.loop(controls);
+////    delay(1000);
+//  }
+//  //  Serial.println();
 }

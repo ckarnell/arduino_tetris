@@ -6,7 +6,85 @@
 /* #include <random> */
 using namespace std;
 
-// your code goes here
+
+struct TetrominoStruct {
+  int symbolNum;
+  int orientations[4][4][4];
+  int offsets[4][2][5][2];
+};
+
+struct TetrominoStruct TPieceStruct = {
+  64 + 20,
+  {
+    {
+        { 0, 1, 0},
+        { 1, 1, 1},
+        { 0, 0, 0},
+    },
+    {
+        { 0, 1, 0},
+        { 0, 1, 1},
+        { 0, 1, 0},
+    },
+    {
+        { 0, 0, 0},
+        { 1, 1, 1},
+        { 0, 1, 0},
+    },
+    {
+        { 0, 1, 0},
+        { 1, 1, 0},
+        { 0, 1, 0},
+    }
+  },
+  {
+    // North
+    {
+      // Counter clockwise
+      {
+        {0, 0}, {1, 0}, {1, -1}, {1, 2}, {0, 0},
+      },
+      // Clockwise
+      {
+        {0, 0}, {-1, 0}, {-1, -1}, {-1, 2}, {0, 0},
+      },
+    },
+    // East
+    {
+      // Counter clockwise
+      {
+        {0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2},
+      },
+      // Clockwise
+      {
+        {0, 0}, {1, 0}, {1, 1}, {0, -2}, {1, -2},
+      },
+    },
+    // South
+    {
+      // Counter clockwise
+      {
+        {0, 0}, {-1, 0}, {0, 2}, {-1, 2}, {0, 0},
+      },
+      // Clockwise
+      {
+        {0, 0}, {1, 0}, {0, 2}, {1, 2}, {0, 0},
+      },
+    },
+    // West
+    {
+      // Counter clockwise
+      {
+        {0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2},
+      },
+      // Clockwise
+      {
+        {0, 0}, {-1, 0}, {-1, 1}, {0, -2}, {-1, -2},
+      },
+    },
+  },
+};
+
 class Tetromino {
   public:
     /* int coordinates[][2] = { */
@@ -985,8 +1063,8 @@ class PieceBag {
       /* srand (time(NULL)); */
       /* randomNumber(7); */
 
-      random(10);
-      random(10);
+      /* random(10); */
+      /* random(10); */
       tetrominos[0] = new TPiece;
       tetrominos[1] = new SPiece;
       tetrominos[2] = new ZPiece;
