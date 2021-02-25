@@ -368,7 +368,7 @@ class TetrisEngine {
     }
 
     bool shouldPieceTryToFall() {
-      return currentTime - lastDrop > dropAfter;
+      return gameController.downHeld || currentTime - lastDrop > dropAfter;
     }
 
     void handlePieceTryToFall() {

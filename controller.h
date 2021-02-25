@@ -17,6 +17,7 @@ class GameController {
     bool leftDas;
     bool rightDas;
     int dropPressed;
+    int downHeld;
     bool clockwisePressed = false;
     bool counterClockwisePressed = false;
 
@@ -36,6 +37,8 @@ class GameController {
     }
 
     void updateControls(Controls controls, int currentTime) {
+      downHeld = controls.down;
+
       if (controls.left) {
         if (leftPressedAt == -1) {
           // It was pressed this iteration
