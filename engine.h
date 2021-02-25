@@ -543,14 +543,7 @@ class TetrisEngine {
       return gameOver;
     }
 
-    TetrisEngine() {
-      random();
-      bag = PieceBag();
-
-      // Create initial board representation, which is empty except for boarders.
-      // Note that this includes a "buffer zone" above the main viewable board,
-      // which won't be rendered, but is important for game state management.
-      matrixRepresentation = new unsigned char[fieldWidth*fieldHeight]; // Create play field buffer
+    void createNewPlayField() {
       for (int y = 0; y < fieldHeight; y++) {
         for (int x = 0; x < fieldWidth; x++) { // Board Boundary
           // "1" represents a border, "0" is anything else.
@@ -567,5 +560,43 @@ class TetrisEngine {
           }
         }
       }
+    }
+
+    void prepareNewGame() {
+      gameOver = false;
+      createNewPlayField();
+      firstIteration = true;
+      justLocked = false;
+      bag.createNewBagOrder(true);
+
+      score = 0;
+      currentLevel = 1;
+    }
+
+    TetrisEngine() {
+      random();
+      bag = PieceBag();
+
+      // Create initial board representation, which is empty except for boarders.
+      // Note that this includes a "buffer zone" above the main viewable board,
+      // which won't be rendered, but is important for game state management.
+      matrixRepresentation = new unsigned char[fieldWidth*fieldHeight]; // Create play field buffer
+      /* prepareNewGame(); */
+      /* for (int y = 0; y < fieldHeight; y++) { */
+      /*   for (int x = 0; x < fieldWidth; x++) { // Board Boundary */
+      /*     // "1" represents a border, "0" is anything else. */
+      /*     matrixRepresentation[y*fieldWidth + x] = 0; */
+      /*     if (x == 0) { */
+      /*       // This is the first element of the line, it's a border character. */
+      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
+      /*     } else if (x == fieldWidth - 1) { */
+      /*       // This is the last element of the line, it's a border character. */
+      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
+      /*     } else if (y == fieldHeight - 1) { */
+      /*       // This is the last row of the board, every character on this row is a border character. */
+      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
+      /*     } */
+      /*   } */
+      /* } */
     }
 };

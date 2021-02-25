@@ -71,6 +71,7 @@ void drawSquareNew(int xCoord, int yCoord, int color) {
 const int colorMap[9] = {0, 1, VIOLET, GREEN, RED, CYAN, ORANGE, BLUE, YELLOW};
 
 bool gameOver = false;
+bool gameOverDrawn = false;
 
 void setup() {
   matrix.begin();
@@ -87,11 +88,19 @@ unsigned char *matrixRepresentationCopy = nullptr;
 //int iterations = 100;
 
 struct Controls controls;
+int joySwPushed = false;
+int joySwReleased = false;
 
 void loop() {
   int xValue = analogRead(joyX); // > 766 = right, <256 = left
   int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
-  int swValue = digitalRead(joySw); // 0 when pushed, random otherwise
+  int swValue = digitalRead(counterClockwiseButton); // 0 when pushed, random otherwise
+//  Serial.println(swValue);
+  if (gameOver && joySwPushed && !swValue) {
+    joySwReleased = true;
+  }
+  joySwPushed = swValue;
+  
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
   
@@ -105,19 +114,159 @@ void loop() {
     false, // Rotate 180
     false, // Hold
   };
+  
+  if (gameOver && !gameOverDrawn) {
+    gameOverDrawn = true;
+    
+    // G
+    matrix.drawPixel(1, 0, CYAN);
+    matrix.drawPixel(2, 0, CYAN);
+    matrix.drawPixel(3, 0, CYAN);
+    matrix.drawPixel(4, 0, CYAN);
+    matrix.drawPixel(1, 1, CYAN);
+    matrix.drawPixel(4, 1, CYAN);
+    matrix.drawPixel(1, 2, CYAN);
+    matrix.drawPixel(4, 2, CYAN);
+    matrix.drawPixel(1, 3, CYAN);
+    matrix.drawPixel(2, 3, CYAN);
+    matrix.drawPixel(4, 3, CYAN);
 
+    // A
+    matrix.drawPixel(1, 4, VIOLET);
+    matrix.drawPixel(2, 4, VIOLET);
+    matrix.drawPixel(3, 4, VIOLET);
+    matrix.drawPixel(4, 4, VIOLET);
+
+    matrix.drawPixel(2, 5, VIOLET);
+    matrix.drawPixel(4, 5, VIOLET);
+    
+    matrix.drawPixel(2, 6, VIOLET);
+    matrix.drawPixel(4, 6, VIOLET);
+
+    matrix.drawPixel(1, 7, VIOLET);
+    matrix.drawPixel(2, 7, VIOLET);
+    matrix.drawPixel(3, 7, VIOLET);
+    matrix.drawPixel(4, 7, VIOLET);
+    
+
+    // M
+    matrix.drawPixel(1, 8, RED);
+    matrix.drawPixel(2, 8, RED);
+    matrix.drawPixel(3, 8, RED);
+    matrix.drawPixel(4, 8, RED);
+    matrix.drawPixel(4, 9, RED);
+    matrix.drawPixel(3, 10, RED);
+    matrix.drawPixel(4, 10, RED);
+
+    matrix.drawPixel(1, 11, RED);
+    matrix.drawPixel(2, 11, RED);
+    matrix.drawPixel(3, 11, RED);
+    matrix.drawPixel(4, 11, RED);
+
+    // E
+    matrix.drawPixel(1, 12, YELLOW);
+    matrix.drawPixel(2, 12, YELLOW);
+    matrix.drawPixel(3, 12, YELLOW);
+    matrix.drawPixel(4, 12, YELLOW);
+
+    matrix.drawPixel(1, 13, YELLOW);
+    matrix.drawPixel(3, 13, YELLOW);
+    matrix.drawPixel(4, 13, YELLOW);
+    
+    matrix.drawPixel(1, 14, YELLOW);
+    matrix.drawPixel(3, 14, YELLOW);
+    matrix.drawPixel(4, 14, YELLOW);
+
+    matrix.drawPixel(1, 15, YELLOW);
+    matrix.drawPixel(4, 15, YELLOW);
+
+    // O
+    matrix.drawPixel(1, 16, GREEN);
+    matrix.drawPixel(2, 16, GREEN);
+    matrix.drawPixel(3, 16, GREEN);
+    matrix.drawPixel(4, 16, GREEN);
+
+    matrix.drawPixel(1, 17, GREEN);
+    matrix.drawPixel(4, 17, GREEN);
+    matrix.drawPixel(1, 18, GREEN);
+    matrix.drawPixel(4, 18, GREEN);
+
+    matrix.drawPixel(1, 19, GREEN);
+    matrix.drawPixel(2, 19, GREEN);
+    matrix.drawPixel(3, 19, GREEN);
+    matrix.drawPixel(4, 19, GREEN);
+
+    // V
+    matrix.drawPixel(2, 20, ORANGE);
+    matrix.drawPixel(3, 20, ORANGE);
+    matrix.drawPixel(4, 20, ORANGE);
+
+    matrix.drawPixel(1, 21, ORANGE);
+    matrix.drawPixel(1, 22, ORANGE);
+
+    matrix.drawPixel(2, 23, ORANGE);
+    matrix.drawPixel(3, 23, ORANGE);
+    matrix.drawPixel(4, 23, ORANGE);
+
+    //E
+    matrix.drawPixel(1, 24, BLUE);
+    matrix.drawPixel(2, 24, BLUE);
+    matrix.drawPixel(3, 24, BLUE);
+    matrix.drawPixel(4, 24, BLUE);
+
+    matrix.drawPixel(1, 25, BLUE);
+    matrix.drawPixel(3, 25, BLUE);
+    matrix.drawPixel(4, 25, BLUE);
+    
+    matrix.drawPixel(1, 26, BLUE);
+    matrix.drawPixel(3, 26, BLUE);
+    matrix.drawPixel(4, 26, BLUE);
+
+    matrix.drawPixel(1, 27, BLUE);
+    matrix.drawPixel(4, 27, BLUE);
+
+    // R
+    matrix.drawPixel(1, 28, CYAN);
+    matrix.drawPixel(2, 28, CYAN);
+    matrix.drawPixel(3, 28, CYAN);
+    matrix.drawPixel(4, 28, CYAN);
+
+    matrix.drawPixel(2, 29, CYAN);
+    matrix.drawPixel(4, 29, CYAN);
+
+    matrix.drawPixel(1, 30, CYAN);
+    matrix.drawPixel(2, 30, CYAN);
+    matrix.drawPixel(4, 30, CYAN);
+
+    matrix.drawPixel(2, 31, CYAN);
+    matrix.drawPixel(3, 31, CYAN);
+    matrix.drawPixel(4, 31, CYAN);
+  }
+  
   if (gameOver) {
 //    Serial.println("Game over");
     firstIteration = true;
+    if (joySwReleased) {
+      joySwReleased = false;
+      gameOver = false;
+    }
   }
 //  gameOver = true;
   if (!gameOver) {
-     if (firstIteration) {
+     gameOverDrawn = false;
+     if 
+     (firstIteration) {
+        tetrisEngine.prepareNewGame();
         // Draw border and a placeholder for score
         matrix.drawLine(6, 0, matrix.width()-1, 0, matrix.Color333(2, 2, 2));
         matrix.drawLine(6, 0, 6, matrix.height() - 1, matrix.Color333(2, 2, 2));
         matrix.drawLine(6, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
-        
+
+        for (int y=1; y<6; y++) {
+          for (int x=0; x<32; x++) {
+            matrix.drawPixel(y, x, matrix.Color333(0, 0, 0));
+          }
+        }
      }
 //    iterations--;
     gameOver = tetrisEngine.loop(controls);

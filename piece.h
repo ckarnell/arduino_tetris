@@ -612,6 +612,11 @@ class PieceBag {
       return tetrominoToReturn;
     }
 
+    Tetromino* getFuturePiece(int ind) {
+      Tetromino* tetrominoToReturn = tetrominos[bagOrder[currentIndex + ind]];
+      return tetrominoToReturn;
+    }
+
     PieceBag() {
       // This next line seems necessary to "kick off" actual randomness,
       // otherwise the first piece is always the same. Very weird.
@@ -628,7 +633,7 @@ class PieceBag {
       tetrominos[5] = &IPiece;
       tetrominos[6] = &OPiece;
 
-      createNewBagOrder(true);
+      /* createNewBagOrder(true); */
     }
 };
 
