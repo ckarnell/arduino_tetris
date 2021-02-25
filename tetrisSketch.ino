@@ -123,34 +123,42 @@ void loop() {
     gameOver = tetrisEngine.loop(controls);
 
     // Print board
-    for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
-      for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
-        int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
-
-        // Only draw if the value has changed or if it's the first iteration.
-//        if (!firstIteration && currentNum == matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x]) {
-//          continue;
-//        }
-
-        int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
-        int currentColor = colorMap[currentColorInd];
-        if (currentColor == 1) {
-          // Debugging
-          continue;
+    if (tetrisEngine.drawAllThisIteration) {
+      for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
+        for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
+          int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
+  
+          // Only draw if the value has changed or if it's the first iteration.
+  //        if (!firstIteration && currentNum == matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x]) {
+  //          continue;
+  //        }
+  
+          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
+          int currentColor = colorMap[currentColorInd];
+          
+          if (currentColor != 1) { // Don't draw borders
+            drawSquareNew(x, y, currentColor);
+          }// else {
+  //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
+  //        }
         }
-        
-        if (currentColor != 1) { // Don't draw borders
-//          Serial.print("X: ");
-//          Serial.print(x);
-//          Serial.print(" Y: ");
-//          Serial.print(y);
-//          Serial.print(" C: ");
-//          Serial.print(currentColor);
-//          Serial.println("");
-          drawSquareNew(x, y, currentColor);
-        }// else {
-//          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
-//        }
+      }
+    } else if (tetrisEngine.drawThisIteration) {
+//      return;
+      Serial.println("GOT HERE");
+      for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
+         int indexToDraw = tetrisEngine.indicesToDraw[i];
+         int x = indexToDraw % tetrisEngine.fieldWidth;
+         Serial.print("X: ");
+         Serial.println(x);
+         int y = (indexToDraw - x) / tetrisEngine.fieldWidth;
+         Serial.print("Y: ");
+         Serial.println(y);
+          
+         int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
+         int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
+         int currentColor = colorMap[currentColorInd];
+         drawSquareNew(x, y, currentColor);
       }
     }
 //    tetrisEngine.loop(controls);

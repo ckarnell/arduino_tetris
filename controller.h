@@ -57,7 +57,7 @@ class GameController {
       }
 
       if (controls.right) {
-        if (leftPressedAt == -1) {
+        if (rightPressedAt == -1) {
           // It was pressed this iteration
           rightPressed = true;
           rightPressedAt = currentTime;
@@ -66,7 +66,7 @@ class GameController {
           rightPressed = false;
 
           // That means this was held - check for das
-          if (rightPressedAt != -1 && currentTime - rightPressedAt > _dasDelay) {
+          if (rightPressedAt != -1 && (currentTime - rightPressedAt > _dasDelay)) {
             rightDas = true;
           }
         }
