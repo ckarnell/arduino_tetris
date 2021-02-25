@@ -566,25 +566,36 @@ class PieceBag {
     int bagOrder[14];
     Tetromino* tetrominos[NUMBER_OF_TETROMINOS];
 
-    void createNewBagOrder() 
+    void createNewBagOrder(bool firstIteration) 
     {
       // Shuffle two bags separately, then append them to each other.
       // We create two at once so we can always see what pieces are coming up.
 
       int orderedBag1[NUMBER_OF_TETROMINOS] = {0, 1, 2, 3, 4, 5, 6};
       shuffleArray(orderedBag1, NUMBER_OF_TETROMINOS);
-      /* std::random_shuffle (orderedBag1.begin(), orderedBag1.end(), random); */
 
-      int orderedBag2[NUMBER_OF_TETROMINOS] = {0, 1, 2, 3, 4, 5, 6};
-      shuffleArray(orderedBag2, NUMBER_OF_TETROMINOS);
-      /* std::random_shuffle (orderedBag2.begin(), orderedBag2.end(), random); */
+      if (firstIteration) {
+        /* std::random_shuffle (orderedBag1.begin(), orderedBag1.end(), random); */
 
-      for (int i = 0; i < NUMBER_OF_TETROMINOS; i++) {
-        bagOrder[i] = orderedBag1[i];
+        for (int i = 0; i < NUMBER_OF_TETROMINOS; i++) {
+          bagOrder[i] = orderedBag1[i];
+        }
+
+        for (int i = 0; i < NUMBER_OF_TETROMINOS; i++) {
+          orderedBag1[i] = i;
+        }
+        shuffleArray(orderedBag1, NUMBER_OF_TETROMINOS);
+      } else {
+        for (int i = 0; i < NUMBER_OF_TETROMINOS; i++) {
+          bagOrder[i] = bagOrder[NUMBER_OF_TETROMINOS + i];
+        }
       }
 
+      /* std::random_shuffle (orderedBag2.begin(), orderedBag2.end(), random); */
+
+
       for (int i = 0; i < NUMBER_OF_TETROMINOS; i++) {
-        bagOrder[i] = orderedBag2[i];
+        bagOrder[i + NUMBER_OF_TETROMINOS] = orderedBag1[i];
       }
     }
 
@@ -593,7 +604,7 @@ class PieceBag {
       if (currentIndex == NUMBER_OF_TETROMINOS)
       {
         currentIndex = 0;
-        createNewBagOrder(); // Mutates bagOrder
+        createNewBagOrder(false); // Mutates bagOrder
       }
 
       Tetromino* tetrominoToReturn = tetrominos[bagOrder[currentIndex]];
@@ -617,7 +628,7 @@ class PieceBag {
       tetrominos[5] = &IPiece;
       tetrominos[6] = &OPiece;
 
-      createNewBagOrder();
+      createNewBagOrder(true);
     }
 };
 

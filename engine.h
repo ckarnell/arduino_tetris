@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 
-const int LOCK_DOWN_TIMER = 500;
+const int LOCK_DOWN_TIMER = 2000;
 const bool DEBUG = false;
 const int INDICES_TO_DRAW_LENGTH = 10;
 
@@ -214,7 +214,6 @@ class TetrisEngine {
             return true;
           }
         }
-        /* Serial.println(""); */
       }
 
       return collisionDetected;
@@ -231,12 +230,14 @@ class TetrisEngine {
             /* Serial.print("Y: "); */
             /* Serial.println(y); */
             for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
-              /* if (y == 0) { */
-              /*   matrixRepresentation[rowsToRemove[i]*fieldWidth + x] = 0; */
-              /* } else { */
-              /* Serial.print("X: "); */
-              /* Serial.println(x); */
-              matrixRepresentation[y*fieldWidth + x] = matrixRepresentation[(y - 1)*fieldWidth + x];
+              int indToEdit = y*fieldWidth + x;
+              if (y == 0) {
+                matrixRepresentation[indToEdit] = 0;
+              } else {
+                /* Serial.print("X: "); */
+                /* Serial.println(x); */
+                matrixRepresentation[indToEdit] = matrixRepresentation[(y - 1)*fieldWidth + x];
+              }
               /* } */
             }
           }
@@ -245,6 +246,8 @@ class TetrisEngine {
       }
 
       if (numRowsBeingRemoved != 0) {
+        /* Serial.print("NUMBER REMOVED: "); */
+        Serial.println(numRowsBeingRemoved);
         drawAllThisIteration = true;
       }
 
@@ -274,8 +277,9 @@ class TetrisEngine {
     }
 
     void queueRowsForRemoval() {
+      /* Serial.println("ABOUT TO QUEUE"); */
       int currentInd = 0;
-      for (int y = currentY + currentPiece.dimension; y >= currentY; y--) {
+      for (int y = currentY; y < currentY + currentPiece.dimension; y++) {
         /* Serial.print("Y: "); */
         /* Serial.println(y); */
         bool queueThisRow = true;
@@ -292,8 +296,8 @@ class TetrisEngine {
         }
 
         if (queueThisRow) {
-          Serial.print("QUEUED: ");
-          Serial.println(y);
+          /* Serial.print("QUEUED: "); */
+          /* Serial.println(y); */
           rowsToRemove[currentInd] = y;
           currentInd++;
         }
@@ -327,37 +331,62 @@ class TetrisEngine {
       }
 
       if (gameController.clockwisePressed) {
-        /* bool foundFittingPosition = false; */
-        /* int indexOfWorkingRotation = 0; */
+        bool foundFittingPosition = false;
+        int indexOfWorkingRotation = 0;
         int potentialNewOrientation = (orientation + 1) % 4;
-        if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) {
-          orientation = potentialNewOrientation;
-        }
+
         // Iterate through the possible ways we can rotate the piece until we find one or don't
-        /* for (int i = 0; i < currentPiece.possibleRotations.size() && !foundFittingPosition; i++) { */
-        /*   /1* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; *1/ */
-        /*   foundFittingPosition = DoesPieceFit(currentPiece, (rotation + 1) % 4, currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1]); */
-        /*   if (foundFittingPosition) { */
-        /*     indexOfWorkingRotation = i; */
-        /*   } */
-        /* } */
+        for (int i = 0; i < 4 && !foundFittingPosition; i++) {
+          /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
+          /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
+          foundFittingPosition = !isCollisionDetected(
+              currentX + currentPiece.offsets[potentialNewOrientation][1][i][0],
+              currentY + currentPiece.offsets[potentialNewOrientation][1][i][1],
+              potentialNewOrientation
+          );
 
-        /* if (foundFittingPosition) { */
-        /*   rotation = (rotation + 1) % 4; */
-        /*   currentX += currentPiece.possibleRotations[indexOfWorkingRotation][0]; */
-        /*   currentY += currentPiece.possibleRotations[indexOfWorkingRotation][1]; */
-        /* } */
-      /* } */
+          if (foundFittingPosition) {
+            indexOfWorkingRotation = i;
+          }
+        }
 
-      /* if (gameController.counterClockwisePressed) { */
-        /* int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1; */
-        /* if (potentialNewOrientation < 0) { */
-        /*   potentialNewOrientation = 3; */
-        /* } */
-        /* if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) { */
-        /*   orientation = potentialNewOrientation; */
-        /* } */
-      /* } */
+        if (foundFittingPosition) {
+          orientation = potentialNewOrientation;
+          currentX += currentPiece.offsets[potentialNewOrientation][1][indexOfWorkingRotation][0];
+          currentY += currentPiece.offsets[potentialNewOrientation][1][indexOfWorkingRotation][1];
+        }
+      }
+
+      if (gameController.counterClockwisePressed) {
+        bool foundFittingPosition = false;
+        int indexOfWorkingRotation = 0;
+
+        int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1;
+        if (potentialNewOrientation < 0) {
+          potentialNewOrientation = 3;
+        }
+
+        // Iterate through the possible ways we can rotate the piece until we find one or don't
+        for (int i = 0; i < 4 && !foundFittingPosition; i++) {
+          /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
+          /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
+          foundFittingPosition = !isCollisionDetected(
+              currentX + currentPiece.offsets[potentialNewOrientation][0][i][0],
+              currentY + currentPiece.offsets[potentialNewOrientation][0][i][1],
+              potentialNewOrientation
+          );
+
+          if (foundFittingPosition) {
+            indexOfWorkingRotation = i;
+          }
+        }
+
+        if (foundFittingPosition) {
+          orientation = potentialNewOrientation;
+          currentX += currentPiece.offsets[potentialNewOrientation][0][indexOfWorkingRotation][0];
+          currentY += currentPiece.offsets[potentialNewOrientation][0][indexOfWorkingRotation][1];
+        }
+      }
     }
 
     bool isBlockedOut() {
@@ -470,10 +499,6 @@ class TetrisEngine {
 
         // TODO: Handle score update
         // The game could be over if we just locked a piece
-        gameOver = isLockedOut();
-        if (gameOver) {
-          return gameOver;
-        }
         drawAllThisIteration = true;
       } else if (shouldPieceTryToFall()) {
         if (shouldDebugPrint()) {
@@ -487,6 +512,12 @@ class TetrisEngine {
       if (justLocked) {
         queueRowsForRemoval();
         removeRows();
+
+        // There may be a game over at this point
+        gameOver = isLockedOut();
+        if (gameOver) {
+          return gameOver;
+        }
       }
 
       if (shouldDebugPrint()) {
