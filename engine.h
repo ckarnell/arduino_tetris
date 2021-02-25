@@ -3,7 +3,7 @@
 /* Debug with `sudo gdb ./engineprog` */
 
 #include <math.h>
-#include "newPiece.h"
+#include "piece.h"
 #include "controller.h"
 /* using namespace std; */
 
@@ -34,6 +34,7 @@ class TetrisEngine {
     PieceBag bag;
 
     int currentTime = millis();
+    int rowsToRemove[4] = {-1, -1, -1, -1};
     int lastDraw = currentTime - 1001;
     bool gameOver = false;
     bool firstIteration = true;
@@ -43,7 +44,7 @@ class TetrisEngine {
 
     // Score
     int score = 0;
-    int currentLevel = 8;
+    int currentLevel = 1;
 
     // Drop
     int lastDrop = currentTime;
@@ -65,6 +66,8 @@ class TetrisEngine {
 
     // Board state
     unsigned char *matrixRepresentation = nullptr;
+    unsigned char *indicesToDraw = nullptr;
+    int indForIndicesToDraw = 0;
     int pastCoordinates[4] = {-1, -1, -1, -1};
     // Use this to compute drop locations faster
     int lowestOccupiedYValues[12] = {-100, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, -100};
@@ -130,6 +133,11 @@ class TetrisEngine {
       Serial.println("");
     }
 
+    void addIndexToDraw(int indToDraw) {
+      indicesToDraw[indForIndicesToDraw] = indToDraw;
+      indForIndicesToDraw++;
+    }
+
     void generation() {
       if (shouldDebugPrint()) {
         Serial.println("GENERATING");
@@ -141,6 +149,9 @@ class TetrisEngine {
       lockDownTimerMs = LOCK_DOWN_TIMER;
       lockDownMaxY = -100;
       lockingDownAt = -1;
+
+      // The game can end now if the newly generated piece overlaps with another one
+      gameOver = isBlockedOut();
     }
 
     bool isCollisionDetected(int newX, int newY, int newOrientation) {
@@ -172,6 +183,54 @@ class TetrisEngine {
       }
 
       return collisionDetected;
+    }
+
+    void removeRows() {
+      // Undraw rows queued for removal
+      int numRowsBeingRemoved = 0;
+      for (int i = 0; i < 4; i++) {
+        if (rowsToRemove[i] != -1) {
+          numRowsBeingRemoved++;
+          for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
+            matrixRepresentation[rowsToRemove[i]*fieldWidth + x] = 0;
+          }
+        }
+        rowsToRemove[i] = -1;
+      }
+
+      // Draw all lines down the number of rows that were removed
+      for (int y = fieldHeight - 1 - BORDER_SIZE; y > 0; y--) {
+        for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
+          int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - numRowsBeingRemoved)*(fieldWidth) + x] : 0;
+          matrixRepresentation[y*fieldWidth + x] = minoToWrite;
+        }
+      }
+    }
+
+    void queueRowsForRemoval() {
+      int currentInd = 0;
+      for (int y = currentY; y < currentY + currentPiece.dimension; y++) {
+        /* Serial.print("Y: "); */
+        /* Serial.println(y); */
+        bool queueThisRow = true;
+        for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE && queueThisRow; x++) {
+          /* Serial.print("X: "); */
+          /* Serial.println(x); */
+          /* Serial.print("Rep: "); */
+          /* Serial.println(matrixRepresentation[y*fieldWidth + x]); */
+          int minoRep = matrixRepresentation[y*fieldWidth + x];
+          if (minoRep == 0 || minoRep == 1) {
+            // This slot is empty, so we don't queue this row
+            queueThisRow = false;
+          }
+        }
+        Serial.println("");
+
+        if (queueThisRow) {
+          rowsToRemove[currentInd] = y;
+          currentInd++;
+        }
+      }
     }
 
     void rotateAndMove() {
@@ -208,11 +267,20 @@ class TetrisEngine {
       }
 
       if (gameController.counterClockwisePressed) {
-        int potentialNewOrientation = (orientation - 1) % 4;
+        int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1;
+        if (potentialNewOrientation < 0) {
+          potentialNewOrientation = 3;
+        }
         if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) {
           orientation = potentialNewOrientation;
         }
       }
+    }
+
+    bool isBlockedOut() {
+      // This is a game over condition that occurs when a newly generated piece overlaps
+      // with another piece.
+      return isCollisionDetected(currentX, currentY, orientation);
     }
 
     bool isLockedOut() {
@@ -241,8 +309,19 @@ class TetrisEngine {
       return true;
     }
 
+    bool canPieceFall() {
+      return !isCollisionDetected(currentX, currentY + 1, orientation);
+    }
+
     bool shouldPieceLock() {
-      return lockDownTimerMs <= 0 || gameController.dropPressed;
+      if (gameController.dropPressed) {
+        // Drop is pressed - we need to drop and lock on this iteration
+        return true;
+      } else if (canPieceFall()) {
+        // Don't lock if there's nothing below the current piece - it has to fall
+        return false;
+      }
+      return lockDownTimerMs <= 0;
     }
 
     bool shouldPieceTryToFall() {
@@ -250,8 +329,7 @@ class TetrisEngine {
     }
 
     void handlePieceTryToFall() {
-      bool collisionDetected = isCollisionDetected(currentX, currentY + 1, orientation);
-      if (!collisionDetected) {
+      if (canPieceFall()) {
         // No collision, actually drop
         currentY++;
         lastDrop = currentTime;
@@ -278,7 +356,9 @@ class TetrisEngine {
     bool loop(Controls controls) {
       // Returns true if the game continues after the loop, false if there's a game over
 
-      // Update global state
+      indForIndicesToDraw = 0;
+      indicesToDraw = nullptr;
+
       currentTime = millis();
       if (shouldDebugPrint()) {
         Serial.print("LOCK: ");
@@ -287,6 +367,9 @@ class TetrisEngine {
 
       if (justLocked || firstIteration) {
         generation();
+        if (gameOver) {
+          return gameOver;
+        }
         justLocked = false;
         firstIteration = false;
       }
@@ -303,6 +386,9 @@ class TetrisEngine {
         // TODO: Handle score update
         // The game could be over if we just locked a piece
         gameOver = isLockedOut();
+        if (gameOver) {
+          return gameOver;
+        }
       } else if (shouldPieceTryToFall()) {
         if (shouldDebugPrint()) {
           Serial.println("FALLING");
@@ -311,6 +397,11 @@ class TetrisEngine {
       }
 
       drawPieceOnBoard();
+
+      if (justLocked) {
+        queueRowsForRemoval();
+        removeRows();
+      }
 
       if (shouldDebugPrint()) {
         for (int i = 0; i < 12; i++) {
@@ -357,9 +448,6 @@ class TetrisEngine {
             // This is the last row of the board, every character on this row is a border character.
             matrixRepresentation[y*fieldWidth + x] = 1;
           }
-
-
-         
         }
       }
     }

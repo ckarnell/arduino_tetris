@@ -2,9 +2,14 @@
 #include <RGBmatrixPanel.h>
 
 // Joystick
-#define joySw A6
+#define joySw 49
 #define joyY A7
 #define joyX A8
+#define seed A9
+
+// Buttons
+#define counterClockwiseButton 45
+#define clockwiseButton 47
 
 // LED Matrix
 #define CLK 11 // USE THIS ON ARDUINO MEGA
@@ -16,7 +21,6 @@
 #define D   A3
 
 TetrisEngine tetrisEngine = TetrisEngine();
-
 const int SQUARE_WIDTH = 3;
 
 RGBmatrixPanel matrix(A, B, C, D, CLK, LAT, OE, false, 64);
@@ -72,7 +76,10 @@ void setup() {
   matrix.begin();
   Serial.begin(9875);
 //  randomSeed(analogRead(3));
-  randomSeed(millis());
+  randomSeed(analogRead(seed));
+  pinMode(clockwiseButton, INPUT);
+  pinMode(counterClockwiseButton, INPUT);
+  pinMode(joySw, INPUT);
 }
 
 bool firstIteration = true;
@@ -84,28 +91,37 @@ struct Controls controls;
 void loop() {
   int xValue = analogRead(joyX); // > 766 = right, <256 = left
   int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
-  int swValue = analogRead(joySw); // 0 when pushed, random otherwise
+  int swValue = digitalRead(joySw); // 0 when pushed, random otherwise
+  int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
+  int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
   
   controls = {
-    xValue > 766, // Right
-    xValue < 256, // Left
-    yValue < 100, // Up
-    yValue > 766, // Down
-    swValue == 0, // Clockwise
-    false, // Counter clockwise
+    yValue < 256, // Right
+    yValue > 766, // Left
+    xValue < 100, // Up
+    xValue > 766, // Down
+    clockwiseButtonValue == 1, // Clockwise
+    counterClockwiseButtonValue == 1, // Counter clockwise
     false, // Rotate 180
     false, // Hold
   };
 
-//  if (gameOver) {
+  if (gameOver) {
 //    Serial.println("Game over");
-//  }
-  gameOver = true;
+    firstIteration = true;
+  }
+//  gameOver = true;
   if (!gameOver) {
+     if (firstIteration) {
+        // Draw border and a placeholder for score
+        matrix.drawLine(6, 0, matrix.width()-1, 0, matrix.Color333(2, 2, 2));
+        matrix.drawLine(6, 0, 6, matrix.height() - 1, matrix.Color333(2, 2, 2));
+        matrix.drawLine(6, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
+        
+     }
 //    iterations--;
     gameOver = tetrisEngine.loop(controls);
 
-//    drawSquareNew(startCoord[0], startCoord[1], 0);
     // Print board
     for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
       for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
@@ -148,7 +164,7 @@ void loop() {
 //      }
 //    }
     
-//    Serial.println("NEW ITERATION");
+//    Serial.println("NEW ITERATION");  
   }
 
   ////  if (gameOver) {

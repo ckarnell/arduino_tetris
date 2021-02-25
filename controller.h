@@ -88,6 +88,7 @@ class GameController {
         clockwiseHeld = false;
       }
 
+
       if (controls.rotateCounterClockwise) {
         if (!counterClockwiseHeld) {
           counterClockwisePressed = true;
@@ -99,6 +100,7 @@ class GameController {
         counterClockwisePressed = false;
         counterClockwiseHeld = false;
       }
+
 
       if (controls.up) {
         if (!dropHeld) {
