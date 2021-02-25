@@ -145,15 +145,15 @@ void loop() {
       }
     } else if (tetrisEngine.drawThisIteration) {
 //      return;
-      Serial.println("GOT HERE");
+//      Serial.println("GOT HERE");
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
          int indexToDraw = tetrisEngine.indicesToDraw[i];
          int x = indexToDraw % tetrisEngine.fieldWidth;
-         Serial.print("X: ");
-         Serial.println(x);
+//         Serial.print("X: ");
+//         Serial.println(x);
          int y = (indexToDraw - x) / tetrisEngine.fieldWidth;
-         Serial.print("Y: ");
-         Serial.println(y);
+//         Serial.print("Y: ");
+//         Serial.println(y);
           
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;

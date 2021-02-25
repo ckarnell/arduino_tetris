@@ -225,23 +225,46 @@ class TetrisEngine {
       int numRowsBeingRemoved = 0;
       for (int i = 0; i < 4; i++) {
         if (rowsToRemove[i] != -1) {
+          /* Serial.println("ABOUT TO REMOVE"); */
           numRowsBeingRemoved++;
-          for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
-            matrixRepresentation[rowsToRemove[i]*fieldWidth + x] = 0;
-            drawAllThisIteration = true;
+          for (int y = rowsToRemove[i]; y >= 0; y--) {
+            /* Serial.print("Y: "); */
+            /* Serial.println(y); */
+            for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
+              /* if (y == 0) { */
+              /*   matrixRepresentation[rowsToRemove[i]*fieldWidth + x] = 0; */
+              /* } else { */
+              /* Serial.print("X: "); */
+              /* Serial.println(x); */
+              matrixRepresentation[y*fieldWidth + x] = matrixRepresentation[(y - 1)*fieldWidth + x];
+              /* } */
+            }
           }
         }
         rowsToRemove[i] = -1;
       }
 
-      // Draw all lines down the number of rows that were removed
-      for (int y = fieldHeight - 1 - BORDER_SIZE; y > 0; y--) {
-        for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
-          int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - numRowsBeingRemoved)*(fieldWidth) + x] : 0;
-          matrixRepresentation[y*fieldWidth + x] = minoToWrite;
-          drawAllThisIteration = true;
-        }
+      if (numRowsBeingRemoved != 0) {
+        drawAllThisIteration = true;
       }
+
+      /* for (int i = 0; i < numRowsBeingRemoved; i++) { */
+      /*   for (int y = fieldHeight - BORDER_SIZE - 1; y > 4; y--) { */
+      /*     for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) { */
+      /*       /1* int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - 1)*(fieldWidth) + x] : 0; *1/ */
+      /*       int minoToWrite = matrixRepresentation[(y - 1)*(fieldWidth) + x]; */
+      /*       matrixRepresentation[y*fieldWidth + x] = minoToWrite; */
+      /*     } */
+      /*   } */
+      /* } */
+
+/*       // Draw all lines down the number of rows that were removed */
+/*       for (int y = fieldHeight - 1 - BORDER_SIZE; y > 0; y--) { */
+/*         for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) { */
+/*           int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - numRowsBeingRemoved)*(fieldWidth) + x] : 0; */
+/*           matrixRepresentation[y*fieldWidth + x] = minoToWrite; */
+/*         } */
+/*       } */
 
       /* for (int j = 1; j < fieldWidth - 1; j++) { */
       /*   if (lowestOccupiedYValues[j] != fieldHeightWithoutBorder) { */
@@ -252,7 +275,7 @@ class TetrisEngine {
 
     void queueRowsForRemoval() {
       int currentInd = 0;
-      for (int y = currentY; y < currentY + currentPiece.dimension; y++) {
+      for (int y = currentY + currentPiece.dimension; y >= currentY; y--) {
         /* Serial.print("Y: "); */
         /* Serial.println(y); */
         bool queueThisRow = true;
@@ -267,9 +290,10 @@ class TetrisEngine {
             queueThisRow = false;
           }
         }
-        Serial.println("");
 
         if (queueThisRow) {
+          Serial.print("QUEUED: ");
+          Serial.println(y);
           rowsToRemove[currentInd] = y;
           currentInd++;
         }
@@ -303,21 +327,37 @@ class TetrisEngine {
       }
 
       if (gameController.clockwisePressed) {
+        /* bool foundFittingPosition = false; */
+        /* int indexOfWorkingRotation = 0; */
         int potentialNewOrientation = (orientation + 1) % 4;
         if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) {
           orientation = potentialNewOrientation;
         }
-      }
+        // Iterate through the possible ways we can rotate the piece until we find one or don't
+        /* for (int i = 0; i < currentPiece.possibleRotations.size() && !foundFittingPosition; i++) { */
+        /*   /1* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; *1/ */
+        /*   foundFittingPosition = DoesPieceFit(currentPiece, (rotation + 1) % 4, currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1]); */
+        /*   if (foundFittingPosition) { */
+        /*     indexOfWorkingRotation = i; */
+        /*   } */
+        /* } */
 
-      if (gameController.counterClockwisePressed) {
-        int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1;
-        if (potentialNewOrientation < 0) {
-          potentialNewOrientation = 3;
-        }
-        if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) {
-          orientation = potentialNewOrientation;
-        }
-      }
+        /* if (foundFittingPosition) { */
+        /*   rotation = (rotation + 1) % 4; */
+        /*   currentX += currentPiece.possibleRotations[indexOfWorkingRotation][0]; */
+        /*   currentY += currentPiece.possibleRotations[indexOfWorkingRotation][1]; */
+        /* } */
+      /* } */
+
+      /* if (gameController.counterClockwisePressed) { */
+        /* int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1; */
+        /* if (potentialNewOrientation < 0) { */
+        /*   potentialNewOrientation = 3; */
+        /* } */
+        /* if (!isCollisionDetected(currentX, currentY, potentialNewOrientation)) { */
+        /*   orientation = potentialNewOrientation; */
+        /* } */
+      /* } */
     }
 
     bool isBlockedOut() {
@@ -434,6 +474,7 @@ class TetrisEngine {
         if (gameOver) {
           return gameOver;
         }
+        drawAllThisIteration = true;
       } else if (shouldPieceTryToFall()) {
         if (shouldDebugPrint()) {
           Serial.println("FALLING");
