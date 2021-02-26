@@ -344,8 +344,8 @@ class TetrisEngine {
           /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
           /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
           foundFittingPosition = !isCollisionDetected(
-              currentX + currentPiece.offsets[potentialNewOrientation][1][i][0],
-              currentY + currentPiece.offsets[potentialNewOrientation][1][i][1],
+              currentX + currentPiece.offsets[orientation][1][i][0],
+              currentY + currentPiece.offsets[orientation][1][i][1],
               potentialNewOrientation
           );
 
@@ -355,9 +355,9 @@ class TetrisEngine {
         }
 
         if (foundFittingPosition) {
+          currentX += currentPiece.offsets[orientation][1][indexOfWorkingRotation][0];
+          currentY += currentPiece.offsets[orientation][1][indexOfWorkingRotation][1];
           orientation = potentialNewOrientation;
-          currentX += currentPiece.offsets[potentialNewOrientation][1][indexOfWorkingRotation][0];
-          currentY += currentPiece.offsets[potentialNewOrientation][1][indexOfWorkingRotation][1];
         }
       }
 
@@ -365,7 +365,7 @@ class TetrisEngine {
         bool foundFittingPosition = false;
         int indexOfWorkingRotation = 0;
 
-        int potentialNewOrientation = orientation - 1 < 0 ? 3 : orientation - 1;
+        int potentialNewOrientation = orientation == 0 ? 3 : orientation - 1;
         if (potentialNewOrientation < 0) {
           potentialNewOrientation = 3;
         }
@@ -375,8 +375,8 @@ class TetrisEngine {
           /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
           /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
           foundFittingPosition = !isCollisionDetected(
-              currentX + currentPiece.offsets[potentialNewOrientation][0][i][0],
-              currentY + currentPiece.offsets[potentialNewOrientation][0][i][1],
+              currentX + currentPiece.offsets[orientation][0][i][0],
+              currentY + currentPiece.offsets[orientation][0][i][1],
               potentialNewOrientation
           );
 
@@ -386,9 +386,9 @@ class TetrisEngine {
         }
 
         if (foundFittingPosition) {
+          currentX += currentPiece.offsets[orientation][0][indexOfWorkingRotation][0];
+          currentY += currentPiece.offsets[orientation][0][indexOfWorkingRotation][1];
           orientation = potentialNewOrientation;
-          currentX += currentPiece.offsets[potentialNewOrientation][0][indexOfWorkingRotation][0];
-          currentY += currentPiece.offsets[potentialNewOrientation][0][indexOfWorkingRotation][1];
         }
       }
     }

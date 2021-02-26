@@ -2,15 +2,14 @@
 #include <RGBmatrixPanel.h>
 
 // Joystick
-#define joySw 49
-#define joyY A7
-#define joyX A8
+//#define joySw 49
+//#define joyY A7
+//#define joyX A8
 #define seed A9
 
 // Buttons
 #define counterClockwiseButton 45
 #define clockwiseButton 47
-
 #define upButton 40
 #define leftButton 38
 #define rightButton 36
@@ -59,19 +58,8 @@ void drawSquareNew(int xCoord, int yCoord, int color, int multiplier) {
 //    return;
 //  }
   int adjustedXCoord = ((xCoord - 1) * multiplier) + PIXEL_OFFSET_X;
-//  int adjustedY = yCoord;
-//  Serial.print("Adj Y: ");
-//  Serial.println(adjustedYCoord);
-//  Serial.print("Adj X: ");
-//  Serial.println(adjustedXCoord);
   matrix.fillRect(adjustedYCoord, adjustedXCoord, multiplier, multiplier, color);
-//  Serial.println("DELAYING");
-//  delay(500);
 }
-
-//void drawSquare(int xCoord, int yCoord, int color) {
-//  matrix.fillRect(yCoord, xCoord, SQUARE_WIDTH, SQUARE_WIDTH, color);
-//}
 
 const int colorMap[9] = {0, 1, VIOLET, GREEN, RED, CYAN, ORANGE, BLUE, YELLOW};
 
@@ -85,7 +73,7 @@ void setup() {
   randomSeed(analogRead(seed));
   pinMode(clockwiseButton, INPUT);
   pinMode(counterClockwiseButton, INPUT);
-  pinMode(joySw, INPUT);
+//  pinMode(joySw, INPUT);
   pinMode(upButton, INPUT);
   pinMode(leftButton, INPUT);
   pinMode(rightButton, INPUT);
@@ -95,24 +83,25 @@ void setup() {
 bool firstIteration = true;
 unsigned char *matrixRepresentationCopy = nullptr;
 //int iterations = 100;
+long gameOverAt;
+long timeBeforeSleep = 60000;
 
 struct Controls controls;
 int joySwPushed = false;
 int joySwReleased = false;
 
 void clearBottom() {
-  for (int y=1; y<6; y++) {
-    for (int x=0; x<32; x++) {
-      matrix.drawPixel(y, x, matrix.Color333(0, 0, 0));
-    }
-  }
+  matrix.fillRect(0, 0, 6, matrix.height(), matrix.Color333(0, 0, 0));
+}
+
+void clearMatrix() {
+  matrix.fillRect(0, 0, matrix.width(), matrix.height(), matrix.Color333(0, 0, 0));
 }
 
 void loop() {
-  int xValue = analogRead(joyX); // > 766 = right, <256 = left
-  int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
+//  int xValue = analogRead(joyX); // > 766 = right, <256 = left
+//  int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
   int swValue = digitalRead(counterClockwiseButton); // 0 when pushed, random otherwise
-//  Serial.println(swValue);
   if (gameOver && joySwPushed && !swValue) {
     joySwReleased = true;
   }
@@ -124,12 +113,13 @@ void loop() {
   
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
+//  Serial.println(counterClockwiseButtonValue);
   
   controls = {
-    yValue < 256 || rightValue, // Right
-    yValue > 766 || leftValue, // Left
-    xValue < 100 || upValue, // Up
-    xValue > 766 || downValue, // Down
+    rightValue, // Right
+    leftValue, // Left
+    upValue, // Up
+    downValue, // Down
     clockwiseButtonValue == 1, // Clockwise
     counterClockwiseButtonValue == 1, // Counter clockwise
     false, // Rotate 180
@@ -272,6 +262,10 @@ void loop() {
       joySwReleased = false;
       gameOver = false;
     }
+    if (millis() - gameOverAt > timeBeforeSleep) {
+      // Go into a "sleep mode" after a few minutes to save energy
+      clearMatrix();
+    }
   }
 //  gameOver = true;
   if (!gameOver) {
@@ -287,6 +281,9 @@ void loop() {
         clearBottom();
      }
     gameOver = tetrisEngine.loop(controls);
+    if (gameOver) {
+      gameOverAt = millis();
+    }
 
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
