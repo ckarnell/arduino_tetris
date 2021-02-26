@@ -11,6 +11,11 @@
 #define counterClockwiseButton 45
 #define clockwiseButton 47
 
+#define upButton 40
+#define leftButton 38
+#define rightButton 36
+#define downButton 34
+
 // LED Matrix
 #define CLK 11 // USE THIS ON ARDUINO MEGA
 #define OE   9
@@ -81,6 +86,10 @@ void setup() {
   pinMode(clockwiseButton, INPUT);
   pinMode(counterClockwiseButton, INPUT);
   pinMode(joySw, INPUT);
+  pinMode(upButton, INPUT);
+  pinMode(leftButton, INPUT);
+  pinMode(rightButton, INPUT);
+  pinMode(downButton, INPUT);
 }
 
 bool firstIteration = true;
@@ -107,16 +116,20 @@ void loop() {
   if (gameOver && joySwPushed && !swValue) {
     joySwReleased = true;
   }
+  int upValue = digitalRead(upButton);
+  int leftValue = digitalRead(leftButton);
+  int rightValue = digitalRead(rightButton);
+  int downValue = digitalRead(downButton);
   joySwPushed = swValue;
   
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
   
   controls = {
-    yValue < 256, // Right
-    yValue > 766, // Left
-    xValue < 100, // Up
-    xValue > 766, // Down
+    yValue < 256 || rightValue, // Right
+    yValue > 766 || leftValue, // Left
+    xValue < 100 || upValue, // Up
+    xValue > 766 || downValue, // Down
     clockwiseButtonValue == 1, // Clockwise
     counterClockwiseButtonValue == 1, // Counter clockwise
     false, // Rotate 180

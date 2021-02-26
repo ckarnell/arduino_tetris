@@ -48,6 +48,7 @@ class TetrisEngine {
 
     // Score
     int score = 0;
+    int rowsCleared = 0;
     int currentLevel = 1;
 
     // Drop
@@ -250,6 +251,7 @@ class TetrisEngine {
       if (numRowsBeingRemoved != 0) {
         /* Serial.print("NUMBER REMOVED: "); */
         Serial.println(numRowsBeingRemoved);
+        rowsCleared += numRowsBeingRemoved;
         drawAllThisIteration = true;
       }
 
@@ -520,6 +522,12 @@ class TetrisEngine {
         if (gameOver) {
           return gameOver;
         }
+
+        // Decide whether to increase the level and difficulty
+        if (currentLevel < 15 && rowsCleared >= currentLevel*10) {
+          currentLevel++;
+          dropAfter = getSpeedInMillisecondsByLevel(currentLevel);
+        }
       }
 
       if (shouldDebugPrint()) {
@@ -573,6 +581,8 @@ class TetrisEngine {
 
       score = 0;
       currentLevel = 1;
+      rowsCleared = 0;
+      dropAfter = getSpeedInMillisecondsByLevel(currentLevel);
     }
 
     TetrisEngine() {
