@@ -14,6 +14,7 @@
 #define leftButton 38
 #define rightButton 36
 #define downButton 34
+#define holdButton 53
 
 // LED Matrix
 #define CLK 11 // USE THIS ON ARDUINO MEGA
@@ -51,13 +52,14 @@ int adjustYCoord(int yCoord, int multiplier) {
   return result;
 }
 
-void drawSquareNew(int xCoord, int yCoord, int color, int multiplier) {
+void drawSquareNew(int xCoord, int yCoord, int color, int multiplier, int xOffset = 0) {
+//  int adjustedYCoord = adjustYCoord(yCoord, multiplier) - multiplier + PIXEL_OFFSET_Y; // Subtract 3 since the origin is seen as lower left instead of top left
   int adjustedYCoord = adjustYCoord(yCoord, multiplier) - SQUARE_WIDTH + PIXEL_OFFSET_Y; // Subtract 3 since the origin is seen as lower left instead of top left
 //  if (adjustedYCoord > matrix.height()) {
 //    // Nothing to draw if we're outside of the boord
 //    return;
 //  }
-  int adjustedXCoord = ((xCoord - 1) * multiplier) + PIXEL_OFFSET_X;
+  int adjustedXCoord = ((xCoord - 1) * multiplier) + PIXEL_OFFSET_X + xOffset;
   matrix.fillRect(adjustedYCoord, adjustedXCoord, multiplier, multiplier, color);
 }
 
@@ -78,6 +80,7 @@ void setup() {
   pinMode(leftButton, INPUT);
   pinMode(rightButton, INPUT);
   pinMode(downButton, INPUT);
+  pinMode(holdButton, INPUT);
 }
 
 bool firstIteration = true;
@@ -92,6 +95,14 @@ int joySwReleased = false;
 
 void clearBottom() {
   matrix.fillRect(0, 0, 6, matrix.height(), matrix.Color333(0, 0, 0));
+}
+
+void clearNextPieces() {
+  matrix.fillRect(0, 9, 6, matrix.height(), matrix.Color333(0, 0, 0));
+}
+
+void clearHeldPiece() {
+  matrix.fillRect(0, 0, 6, 8, matrix.Color333(0, 0, 0));
 }
 
 void clearMatrix() {
@@ -109,6 +120,7 @@ void loop() {
   int leftValue = digitalRead(leftButton);
   int rightValue = digitalRead(rightButton);
   int downValue = digitalRead(downButton);
+  int holdValue = digitalRead(holdButton);
   joySwPushed = swValue;
   
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
@@ -123,7 +135,7 @@ void loop() {
     clockwiseButtonValue == 1, // Clockwise
     counterClockwiseButtonValue == 1, // Counter clockwise
     false, // Rotate 180
-    false, // Hold
+    holdValue, // Hold
   };
   
   if (gameOver && !gameOverDrawn) {
@@ -279,6 +291,9 @@ void loop() {
         matrix.drawLine(6, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
 
         clearBottom();
+        
+        // Draw line separating new pieces from help piece display
+        matrix.drawLine(0, 8, 6, 8, matrix.Color333(2, 2, 2));
      }
     gameOver = tetrisEngine.loop(controls);
     if (gameOver) {
@@ -286,17 +301,31 @@ void loop() {
     }
 
     if (tetrisEngine.generationThisIteration) {
-      // Print next piece
-      clearBottom();
+      // Print next pieces
+      clearNextPieces();
       for (int i = 0; i < 3; i++) {
         Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
+        
         for (int y = 0; y < nextPiece -> dimension; y++) {
           for (int x = 0; x < nextPiece -> dimension; x++) {
   
             tetrisEngine.bag.getFuturePiece(1);
             if (nextPiece -> orientations[0][y][x] == 1) {
-              drawSquareNew(x + 12 - 5*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
+              drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
             }
+          }
+        }
+      }
+    }
+
+    if (tetrisEngine.pieceHeldThisIteration) {
+      clearHeldPiece();
+      Tetromino* heldPiece = tetrisEngine.heldPiece;
+      int xOffset = heldPiece -> symbolNum == 5 ? 1 : 2;
+      for (int y = 0; y < heldPiece -> dimension; y++) {
+        for (int x = 0; x < heldPiece -> dimension; x++) {
+          if (heldPiece -> orientations[0][y][x] == 1) {
+            drawSquareNew(x, y + tetrisEngine.fieldHeight - 1, colorMap[heldPiece -> symbolNum], 2, xOffset);
           }
         }
       }
@@ -313,7 +342,7 @@ void loop() {
   //          continue;
   //        }
   
-          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
+          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum;
           int currentColor = colorMap[currentColorInd];
           
           if (currentColor != 1) { // Don't draw borders
@@ -332,7 +361,7 @@ void loop() {
          int y = (indexToDraw - x) / tetrisEngine.fieldWidth;
           
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
-         int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
+         int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum;
          int currentColor = colorMap[currentColorInd];
          drawSquareNew(x, y, currentColor, 3);
       }

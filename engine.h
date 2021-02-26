@@ -31,7 +31,7 @@ class TetrisEngine {
   public:
     /* PieceBag bag; */
     GameController gameController = GameController(300);
-    Tetromino currentPiece;
+    Tetromino* currentPiece;
     PieceBag bag;
 
     int currentTime = millis();
@@ -42,6 +42,12 @@ class TetrisEngine {
     bool drawAllThisIteration = false;
     bool drawThisIteration = false;
     bool generationThisIteration;
+
+    // Piece holding
+    Tetromino* heldPiece;
+    bool pieceHeldThisGame = false;
+    bool pieceHeldThisIteration = false;
+    bool pieceHeldThisPieceFall = false;
 
     // Piece creation
     bool justLocked = false;
@@ -79,7 +85,7 @@ class TetrisEngine {
     /* int lowestOccupiedYValues[12] = {-100, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, -100}; */
 
     void drawPieceOnBoard() {
-      int currentDimension = currentPiece.dimension;
+      int currentDimension = currentPiece -> dimension;
       /* int pieceOrientation[4][4]; */
       /* currentPiece -> getOrientation(orientation, pieceOrientation); */
 
@@ -87,7 +93,7 @@ class TetrisEngine {
       /* if (justLocked) { */
       /*   for (int y = currentDimension - 1; y >= 0; y--) { */
       /*     for (int x = 0; x < currentDimension; x++) { */
-      /*       int minoRepresentation = currentPiece.orientations[orientation][y][x]; */
+      /*       int minoRepresentation = currentPiece -> orientations[orientation][y][x]; */
       /*       if (minoRepresentation == 1) { */
       /*         lowestOccupiedYValues[x + currentX] = y + currentY; */
       /*       } */
@@ -107,9 +113,9 @@ class TetrisEngine {
       int newPastCoordinates[4] = {-1, -1, -1, -1};
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
-          int minoRepresentation = currentPiece.orientations[orientation][y][x];
+          int minoRepresentation = currentPiece -> orientations[orientation][y][x];
           if (minoRepresentation == 1) {
-            int charToDraw = justLocked ? currentPiece.symbolNum : CURRENT_PIECE_CHAR;
+            int charToDraw = justLocked ? currentPiece -> symbolNum : CURRENT_PIECE_CHAR;
             matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = charToDraw;
             /* addIndexToDraw((y + currentY)*fieldWidth + (x + currentX)); */
             int pastCoord = justLocked ? -1 : (y + currentY)*fieldWidth + (x + currentX);
@@ -127,7 +133,7 @@ class TetrisEngine {
             if (newPastCoordinates[i] == pastCoordinates[j])
               newCoordNeedsDrawing = false;
           }
-          if (newCoordNeedsDrawing) 
+          if (newCoordNeedsDrawing || pieceHeldThisIteration) 
             addIndexToDraw(newPastCoordinates[i]);
         }
 
@@ -137,10 +143,9 @@ class TetrisEngine {
             if (pastCoordinates[i] == newPastCoordinates[j])
               pastCoordNeedsDrawing = false;
           }
-          if (pastCoordNeedsDrawing) 
+          if (pastCoordNeedsDrawing || pieceHeldThisIteration) 
             addIndexToDraw(pastCoordinates[i]);
         }
-
       }
 
       // Finally, copy over
@@ -180,7 +185,7 @@ class TetrisEngine {
       if (shouldDebugPrint()) {
         Serial.println("GENERATING");
       }
-      currentPiece = *bag.getNextPiece();
+      currentPiece = bag.getNextPiece();
       orientation = 0;
       currentX = 4;
       currentY = BUFFER_ZONE_HEIGHT;
@@ -194,15 +199,15 @@ class TetrisEngine {
 
     bool isCollisionDetected(int newX, int newY, int newOrientation) {
       bool collisionDetected = false;
-      int currentDimension = currentPiece.dimension;
+      int currentDimension = currentPiece -> dimension;
 
-      /* int newPieceOrientation[4][4] = currentPiece.orientations[newOrientation]; */
+      /* int newPieceOrientation[4][4] = currentPiece -> orientations[newOrientation]; */
       /* /1* currentPiece -> getOrientation(newOrientation, newPieceOrientation); *1/ */
 
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
           /* int oldMinoRepresentation = currentPieceOrientation[y][x]; */
-          int newMinoRepresentation = currentPiece.orientations[newOrientation][y][x];
+          int newMinoRepresentation = currentPiece -> orientations[newOrientation][y][x];
           //  Check for 0 so we're not comparing squares that are occupied by the current piece
           int thisY = (y + newY)*fieldWidth;
           int thisX = x + newX;
@@ -258,7 +263,7 @@ class TetrisEngine {
     void queueRowsForRemoval() {
       /* Serial.println("ABOUT TO QUEUE"); */
       int currentInd = 0;
-      for (int y = currentY; y < currentY + currentPiece.dimension; y++) {
+      for (int y = currentY; y < currentY + currentPiece -> dimension; y++) {
         /* Serial.print("Y: "); */
         /* Serial.println(y); */
         bool queueThisRow = true;
@@ -281,6 +286,35 @@ class TetrisEngine {
           currentInd++;
         }
       }
+    }
+
+    void handleHold() {
+      if (!gameController.holdPressed) {
+        return;
+      }
+
+      if (pieceHeldThisPieceFall) {
+        // You can only hold once per piece lock
+        return;
+      }
+
+      pieceHeldThisIteration = true;
+      pieceHeldThisPieceFall = true;
+      drawAllThisIteration = firstIteration;
+
+      if (pieceHeldThisGame) {
+        // Swap the held piece with the current piece and reset state
+        Tetromino* intermediatePiece = heldPiece;
+        heldPiece = currentPiece;
+        currentPiece = intermediatePiece;
+        return;
+      }
+
+      pieceHeldThisGame = true;
+
+      // Save the held piece, generate a new piece and reset state
+      heldPiece = currentPiece;
+      generation();
     }
 
     void rotateAndMove() {
@@ -317,10 +351,10 @@ class TetrisEngine {
         // Iterate through the possible ways we can rotate the piece until we find one or don't
         for (int i = 0; i < 4 && !foundFittingPosition; i++) {
           /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
-          /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
+          /* , currentX + currentPiece -> possibleRotations[i][0], currentY + currentPiece -> possibleRotations[i][1] */
           foundFittingPosition = !isCollisionDetected(
-              currentX + currentPiece.offsets[orientation][1][i][0],
-              currentY + currentPiece.offsets[orientation][1][i][1],
+              currentX + currentPiece -> offsets[orientation][1][i][0],
+              currentY + currentPiece -> offsets[orientation][1][i][1],
               potentialNewOrientation
           );
 
@@ -330,8 +364,8 @@ class TetrisEngine {
         }
 
         if (foundFittingPosition) {
-          currentX += currentPiece.offsets[orientation][1][indexOfWorkingRotation][0];
-          currentY += currentPiece.offsets[orientation][1][indexOfWorkingRotation][1];
+          currentX += currentPiece -> offsets[orientation][1][indexOfWorkingRotation][0];
+          currentY += currentPiece -> offsets[orientation][1][indexOfWorkingRotation][1];
           orientation = potentialNewOrientation;
         }
       }
@@ -348,10 +382,10 @@ class TetrisEngine {
         // Iterate through the possible ways we can rotate the piece until we find one or don't
         for (int i = 0; i < 4 && !foundFittingPosition; i++) {
           /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
-          /* , currentX + currentPiece.possibleRotations[i][0], currentY + currentPiece.possibleRotations[i][1] */
+          /* , currentX + currentPiece -> possibleRotations[i][0], currentY + currentPiece -> possibleRotations[i][1] */
           foundFittingPosition = !isCollisionDetected(
-              currentX + currentPiece.offsets[orientation][0][i][0],
-              currentY + currentPiece.offsets[orientation][0][i][1],
+              currentX + currentPiece -> offsets[orientation][0][i][0],
+              currentY + currentPiece -> offsets[orientation][0][i][1],
               potentialNewOrientation
           );
 
@@ -361,8 +395,8 @@ class TetrisEngine {
         }
 
         if (foundFittingPosition) {
-          currentX += currentPiece.offsets[orientation][0][indexOfWorkingRotation][0];
-          currentY += currentPiece.offsets[orientation][0][indexOfWorkingRotation][1];
+          currentX += currentPiece -> offsets[orientation][0][indexOfWorkingRotation][0];
+          currentY += currentPiece -> offsets[orientation][0][indexOfWorkingRotation][1];
           orientation = potentialNewOrientation;
         }
       }
@@ -381,14 +415,14 @@ class TetrisEngine {
         return false;
       }
 
-      int currentDimension = currentPiece.dimension;
+      int currentDimension = currentPiece -> dimension;
       /* int currentPieceOrientation[4][4]; */ // TODO: Delete these
       /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
       /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
 
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
-          if (currentPiece.orientations[orientation][y][x] == 1) {
+          if (currentPiece -> orientations[orientation][y][x] == 1) {
             if (currentY + y > BUFFER_ZONE_HEIGHT) {
               // This mino is in the game field, so there's no lockout
               return false;
@@ -450,6 +484,7 @@ class TetrisEngine {
       drawThisIteration = false;
       indForIndicesToDraw = 0;
       generationThisIteration = false;
+      pieceHeldThisIteration = false;
 
       for (int x = 0; x < 10; x++)
         indicesToDraw[x] = -1;
@@ -473,11 +508,9 @@ class TetrisEngine {
 
       updateLockDownTimer();
 
-      gameController.updateControls(controls, currentTime);
-      rotateAndMove();
-
       if (shouldPieceLock()) {
         justLocked = true;
+        pieceHeldThisPieceFall = false;
 
         // TODO: Handle score update
         // The game could be over if we just locked a piece
@@ -488,6 +521,12 @@ class TetrisEngine {
         }
         handlePieceTryToFall();
       }
+
+      // Update and respond to input
+      gameController.updateControls(controls, currentTime);
+      handleHold();
+      rotateAndMove();
+
 
       drawPieceOnBoard();
 
@@ -518,7 +557,7 @@ class TetrisEngine {
         Serial.println("");
 
         Serial.print("Piece: ");
-        char pieceSym = currentPiece.symbolNum;
+        char pieceSym = currentPiece -> symbolNum;
         Serial.println(pieceSym);
         Serial.print("X: ");
         Serial.println(currentX);
@@ -553,12 +592,17 @@ class TetrisEngine {
     }
 
     void prepareNewGame() {
+      // Reset state
       gameOver = false;
       rowsThisLevel = 0;
       createNewPlayField();
       firstIteration = true;
       justLocked = false;
       bag.createNewBagOrder(true);
+
+      pieceHeldThisIteration = false;
+      pieceHeldThisPieceFall = false;
+      pieceHeldThisGame = false;
 
       score = 0;
       currentLevel = 1;

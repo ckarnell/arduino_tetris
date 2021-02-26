@@ -19,6 +19,7 @@ class GameController {
     int dropPressed;
     int downHeld;
     bool clockwisePressed = false;
+    bool holdPressed = false;
     bool counterClockwisePressed = false;
 
     GameController(int dasDelay) {
@@ -31,6 +32,7 @@ class GameController {
       leftDas = false;
       rightDas = false;
       dropPressed = false;
+      holdPressed = false;
       // -1 is a sentinal value here, implying the button isn't pushed at all
       leftPressedAt = -1;
       rightPressedAt = -1;
@@ -116,6 +118,18 @@ class GameController {
         dropHeld = false;
         dropPressed = false;
       }
+
+      if (controls.hold) {
+        if (!holdHeld) {
+          holdPressed = true;
+          holdHeld = true;
+        } else {
+          holdPressed = false;
+        }
+      } else {
+        holdPressed = false;
+        holdHeld = false;
+      }
     }
 
   private:
@@ -123,6 +137,7 @@ class GameController {
     int leftPressedAt;
     int rightPressedAt;
     int clockwiseHeld;
+    int holdHeld = false;
     int counterClockwiseHeld;
     bool dropHeld = false;
     int _dasDelay;
