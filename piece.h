@@ -613,7 +613,7 @@ class PieceBag {
     }
 
     Tetromino* getFuturePiece(int ind) {
-      Tetromino* tetrominoToReturn = tetrominos[bagOrder[currentIndex + ind]];
+      Tetromino* tetrominoToReturn = tetrominos[bagOrder[currentIndex + ind - 1]];
       return tetrominoToReturn;
     }
 

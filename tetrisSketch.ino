@@ -36,30 +36,30 @@ const int GREEN  = matrix.Color333(0,7,0); // 2016
 const int ORANGE = matrix.Color333(7,2,0); // -1472
 const int BLUE   = matrix.Color333(0,0,7);
 
-int adjustYCoord(int yCoord) {
+int adjustYCoord(int yCoord, int multiplier) {
   // We want y = 20 to appear at 60 on the led board,
   // but we want y = 40 to appear at 0 on the led board,
   // a linear function.
   // f(BUFFER_HEIGHT) = 60
   // f(24) = 0
-  int result = (MAIN_MATRIX_HEIGHT+BUFFER_ZONE_HEIGHT+BORDER_SIZE)*SQUARE_WIDTH; // Start with the max height
-  result -= yCoord*SQUARE_WIDTH;
+  int result = (MAIN_MATRIX_HEIGHT+BUFFER_ZONE_HEIGHT+BORDER_SIZE)*multiplier; // Start with the max height
+  result -= yCoord*multiplier;
   return result;
 }
 
-void drawSquareNew(int xCoord, int yCoord, int color) {
-  int adjustedYCoord = adjustYCoord(yCoord) - SQUARE_WIDTH + PIXEL_OFFSET_Y; // Subtract 3 since the origin is seen as lower left instead of top left
+void drawSquareNew(int xCoord, int yCoord, int color, int multiplier) {
+  int adjustedYCoord = adjustYCoord(yCoord, multiplier) - SQUARE_WIDTH + PIXEL_OFFSET_Y; // Subtract 3 since the origin is seen as lower left instead of top left
 //  if (adjustedYCoord > matrix.height()) {
 //    // Nothing to draw if we're outside of the boord
 //    return;
 //  }
-  int adjustedXCoord = ((xCoord - 1) * 3) + PIXEL_OFFSET_X;
+  int adjustedXCoord = ((xCoord - 1) * multiplier) + PIXEL_OFFSET_X;
 //  int adjustedY = yCoord;
 //  Serial.print("Adj Y: ");
 //  Serial.println(adjustedYCoord);
 //  Serial.print("Adj X: ");
 //  Serial.println(adjustedXCoord);
-  matrix.fillRect(adjustedYCoord, adjustedXCoord, SQUARE_WIDTH, SQUARE_WIDTH, color);
+  matrix.fillRect(adjustedYCoord, adjustedXCoord, multiplier, multiplier, color);
 //  Serial.println("DELAYING");
 //  delay(500);
 }
@@ -91,6 +91,14 @@ struct Controls controls;
 int joySwPushed = false;
 int joySwReleased = false;
 
+void clearBottom() {
+  for (int y=1; y<6; y++) {
+    for (int x=0; x<32; x++) {
+      matrix.drawPixel(y, x, matrix.Color333(0, 0, 0));
+    }
+  }
+}
+
 void loop() {
   int xValue = analogRead(joyX); // > 766 = right, <256 = left
   int yValue = analogRead(joyY); // 511 by default, >766 = down, <100 = up
@@ -116,6 +124,7 @@ void loop() {
   };
   
   if (gameOver && !gameOverDrawn) {
+    clearBottom();
     gameOverDrawn = true;
     
     // G
@@ -262,13 +271,8 @@ void loop() {
         matrix.drawLine(6, 0, 6, matrix.height() - 1, matrix.Color333(2, 2, 2));
         matrix.drawLine(6, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
 
-        for (int y=1; y<6; y++) {
-          for (int x=0; x<32; x++) {
-            matrix.drawPixel(y, x, matrix.Color333(0, 0, 0));
-          }
-        }
+        clearBottom();
      }
-//    iterations--;
     gameOver = tetrisEngine.loop(controls);
 
     // Print board
@@ -286,12 +290,28 @@ void loop() {
           int currentColor = colorMap[currentColorInd];
           
           if (currentColor != 1) { // Don't draw borders
-            drawSquareNew(x, y, currentColor);
+            drawSquareNew(x, y, currentColor, 3);
           }// else {
   //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
   //        }
         }
       }
+      
+      // Print next piece
+      clearBottom();
+      for (int i = 0; i < 3; i++) {
+        Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
+        for (int y = 0; y < nextPiece -> dimension; y++) {
+          for (int x = 0; x < nextPiece -> dimension; x++) {
+  
+            tetrisEngine.bag.getFuturePiece(1);
+            if (nextPiece -> orientations[0][y][x] == 1) {
+              drawSquareNew(x + 12 - 5*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
+            }
+          }
+        }
+      }
+      
     } else if (tetrisEngine.drawThisIteration) {
 //      return;
 //      Serial.println("GOT HERE");
@@ -307,7 +327,7 @@ void loop() {
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
          int currentColor = colorMap[currentColorInd];
-         drawSquareNew(x, y, currentColor);
+         drawSquareNew(x, y, currentColor, 3);
       }
     }
 //    tetrisEngine.loop(controls);

@@ -32,6 +32,7 @@ class TetrisEngine {
     /* PieceBag bag; */
     GameController gameController = GameController(300);
     Tetromino currentPiece;
+    Tetromino nextPiece;
     PieceBag bag;
 
     int currentTime = millis();
@@ -178,6 +179,7 @@ class TetrisEngine {
         Serial.println("GENERATING");
       }
       currentPiece = *bag.getNextPiece();
+      nextPiece = *bag.getFuturePiece(1);
       orientation = 0;
       currentX = 4;
       currentY = BUFFER_ZONE_HEIGHT;
