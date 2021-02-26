@@ -32,7 +32,6 @@ class TetrisEngine {
     /* PieceBag bag; */
     GameController gameController = GameController(300);
     Tetromino currentPiece;
-    Tetromino nextPiece;
     PieceBag bag;
 
     int currentTime = millis();
@@ -42,6 +41,7 @@ class TetrisEngine {
     bool firstIteration = true;
     bool drawAllThisIteration = false;
     bool drawThisIteration = false;
+    bool generationThisIteration;
 
     // Piece creation
     bool justLocked = false;
@@ -50,6 +50,7 @@ class TetrisEngine {
     int score = 0;
     int rowsCleared = 0;
     int currentLevel = 1;
+    int rowsThisLevel = 0;
 
     // Drop
     int lastDrop = currentTime;
@@ -98,7 +99,6 @@ class TetrisEngine {
       if (pastCoordinates[0] != -1) {
         for (int i = 0; i < 4; i++) {
           matrixRepresentation[pastCoordinates[i]] = 0;
-          /* addIndexToDraw(pastCoordinates[i]); */
         }
       }
 
@@ -122,6 +122,16 @@ class TetrisEngine {
       // Mark the diff between what was on the board before and what is on the board now for printing
       if (pastCoordinates[0] != -1) {
         for (int i = 0; i < 4; i++) {
+          bool newCoordNeedsDrawing = true;
+          for (int j = 0; j < 4; j++) {
+            if (newPastCoordinates[i] == pastCoordinates[j])
+              newCoordNeedsDrawing = false;
+          }
+          if (newCoordNeedsDrawing) 
+            addIndexToDraw(newPastCoordinates[i]);
+        }
+
+        for (int i = 0; i < 4; i++) {
           bool pastCoordNeedsDrawing = true;
           for (int j = 0; j < 4; j++) {
             if (pastCoordinates[i] == newPastCoordinates[j])
@@ -131,15 +141,6 @@ class TetrisEngine {
             addIndexToDraw(pastCoordinates[i]);
         }
 
-        for (int i = 0; i < 4; i++) {
-          bool newCoordNeedsDrawing = true;
-          for (int j = 0; j < 4; j++) {
-            if (newPastCoordinates[i] == pastCoordinates[j])
-              newCoordNeedsDrawing = false;
-          }
-          if (newCoordNeedsDrawing) 
-            addIndexToDraw(newPastCoordinates[i]);
-        }
       }
 
       // Finally, copy over
@@ -180,7 +181,6 @@ class TetrisEngine {
         Serial.println("GENERATING");
       }
       currentPiece = *bag.getNextPiece();
-      nextPiece = *bag.getFuturePiece(1);
       orientation = 0;
       currentX = 4;
       currentY = BUFFER_ZONE_HEIGHT;
@@ -249,35 +249,10 @@ class TetrisEngine {
       }
 
       if (numRowsBeingRemoved != 0) {
-        /* Serial.print("NUMBER REMOVED: "); */
-        Serial.println(numRowsBeingRemoved);
         rowsCleared += numRowsBeingRemoved;
+        rowsThisLevel += numRowsBeingRemoved;
         drawAllThisIteration = true;
       }
-
-      /* for (int i = 0; i < numRowsBeingRemoved; i++) { */
-      /*   for (int y = fieldHeight - BORDER_SIZE - 1; y > 4; y--) { */
-      /*     for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) { */
-      /*       /1* int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - 1)*(fieldWidth) + x] : 0; *1/ */
-      /*       int minoToWrite = matrixRepresentation[(y - 1)*(fieldWidth) + x]; */
-      /*       matrixRepresentation[y*fieldWidth + x] = minoToWrite; */
-      /*     } */
-      /*   } */
-      /* } */
-
-/*       // Draw all lines down the number of rows that were removed */
-/*       for (int y = fieldHeight - 1 - BORDER_SIZE; y > 0; y--) { */
-/*         for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) { */
-/*           int minoToWrite = y > numRowsBeingRemoved ? matrixRepresentation[(y - numRowsBeingRemoved)*(fieldWidth) + x] : 0; */
-/*           matrixRepresentation[y*fieldWidth + x] = minoToWrite; */
-/*         } */
-/*       } */
-
-      /* for (int j = 1; j < fieldWidth - 1; j++) { */
-      /*   if (lowestOccupiedYValues[j] != fieldHeightWithoutBorder) { */
-      /*     lowestOccupiedYValues[j] -= numRowsBeingRemoved; */
-      /*   } */
-      /* } */
     }
 
     void queueRowsForRemoval() {
@@ -474,6 +449,8 @@ class TetrisEngine {
       drawAllThisIteration = firstIteration;
       drawThisIteration = false;
       indForIndicesToDraw = 0;
+      generationThisIteration = false;
+
       for (int x = 0; x < 10; x++)
         indicesToDraw[x] = -1;
 
@@ -484,6 +461,7 @@ class TetrisEngine {
       }
 
       if (justLocked || firstIteration) {
+        generationThisIteration = true;
         generation();
         if (gameOver) {
           return gameOver;
@@ -503,7 +481,7 @@ class TetrisEngine {
 
         // TODO: Handle score update
         // The game could be over if we just locked a piece
-        drawAllThisIteration = true;
+        /* drawAllThisIteration = true; */
       } else if (shouldPieceTryToFall()) {
         if (shouldDebugPrint()) {
           Serial.println("FALLING");
@@ -524,8 +502,10 @@ class TetrisEngine {
         }
 
         // Decide whether to increase the level and difficulty
+        /* if (currentLevel < 15 && rowsThisLevel >= currentLevel*5) { */
         if (currentLevel < 15 && rowsCleared >= currentLevel*10) {
           currentLevel++;
+          rowsThisLevel = 0;
           dropAfter = getSpeedInMillisecondsByLevel(currentLevel);
         }
       }
@@ -574,6 +554,7 @@ class TetrisEngine {
 
     void prepareNewGame() {
       gameOver = false;
+      rowsThisLevel = 0;
       createNewPlayField();
       firstIteration = true;
       justLocked = false;

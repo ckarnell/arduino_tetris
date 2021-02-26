@@ -285,6 +285,23 @@ void loop() {
       gameOverAt = millis();
     }
 
+    if (tetrisEngine.generationThisIteration) {
+      // Print next piece
+      clearBottom();
+      for (int i = 0; i < 3; i++) {
+        Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
+        for (int y = 0; y < nextPiece -> dimension; y++) {
+          for (int x = 0; x < nextPiece -> dimension; x++) {
+  
+            tetrisEngine.bag.getFuturePiece(1);
+            if (nextPiece -> orientations[0][y][x] == 1) {
+              drawSquareNew(x + 12 - 5*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
+            }
+          }
+        }
+      }
+    }
+
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
       for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
@@ -307,32 +324,12 @@ void loop() {
         }
       }
       
-      // Print next piece
-      clearBottom();
-      for (int i = 0; i < 3; i++) {
-        Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
-        for (int y = 0; y < nextPiece -> dimension; y++) {
-          for (int x = 0; x < nextPiece -> dimension; x++) {
-  
-            tetrisEngine.bag.getFuturePiece(1);
-            if (nextPiece -> orientations[0][y][x] == 1) {
-              drawSquareNew(x + 12 - 5*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
-            }
-          }
-        }
-      }
       
     } else if (tetrisEngine.drawThisIteration) {
-//      return;
-//      Serial.println("GOT HERE");
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
          int indexToDraw = tetrisEngine.indicesToDraw[i];
          int x = indexToDraw % tetrisEngine.fieldWidth;
-//         Serial.print("X: ");
-//         Serial.println(x);
          int y = (indexToDraw - x) / tetrisEngine.fieldWidth;
-//         Serial.print("Y: ");
-//         Serial.println(y);
           
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece.symbolNum : currentNum;
