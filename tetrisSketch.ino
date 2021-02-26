@@ -308,10 +308,11 @@ void loop() {
         
         for (int y = 0; y < nextPiece -> dimension; y++) {
           for (int x = 0; x < nextPiece -> dimension; x++) {
-  
-            tetrisEngine.bag.getFuturePiece(1);
             if (nextPiece -> orientations[0][y][x] == 1) {
-              drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2);
+              int xOffset = nextPiece -> symbolNum == 5 && i == 0 ? -1 : 0;
+              if (nextPiece -> symbolNum == 8)
+                xOffset = -1;
+              drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2, xOffset);
             }
           }
         }
