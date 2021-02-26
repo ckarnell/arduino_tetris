@@ -337,11 +337,7 @@ void loop() {
       for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
         for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
           int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
-  
-          // Only draw if the value has changed or if it's the first iteration.
-  //        if (!firstIteration && currentNum == matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x]) {
-  //          continue;
-  //        }
+
   
           int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum;
           int currentColor = colorMap[currentColorInd];

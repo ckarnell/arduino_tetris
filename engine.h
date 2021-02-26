@@ -109,6 +109,8 @@ class TetrisEngine {
       }
 
       // Draw new coordinates and save them as past coordinates.
+      // Also, if it's the first iteration of this piece being on the board,
+      // add it's indices to the draw list
       int pastCoordInd = 0;
       int newPastCoordinates[4] = {-1, -1, -1, -1};
       for (int y = 0; y < currentDimension; y++) {
@@ -120,6 +122,11 @@ class TetrisEngine {
             /* addIndexToDraw((y + currentY)*fieldWidth + (x + currentX)); */
             int pastCoord = justLocked ? -1 : (y + currentY)*fieldWidth + (x + currentX);
             newPastCoordinates[pastCoordInd] = pastCoord;
+
+            // This is the first time this piece has been on the board, so draw it
+            if (generationThisIteration) {
+              addIndexToDraw((y + currentY)*fieldWidth + (x + currentX));
+            }
             pastCoordInd++;
           }
         }
@@ -181,17 +188,30 @@ class TetrisEngine {
       drawThisIteration = true;
     }
 
+    void pieceSetup() {
+      orientation = 0;
+      currentX = 4;
+
+      // The I piece spawns one higher than the other pieces
+      currentY = BUFFER_ZONE_HEIGHT - (currentPiece -> symbolNum == 5 ? 1 : 0);
+
+      // The piece is generated one space above the skyline. Check if it can move down immediately,
+      // and if it can, move it down.
+      if (!isCollisionDetected(currentX, currentY + 1, orientation)) {
+        currentY++;
+      }
+      lockDownTimerMs = LOCK_DOWN_TIMER;
+      lockDownMaxY = -100;
+      lockingDownAt = -1;
+      lastDrop = currentTime;
+    }
+
     void generation() {
       if (shouldDebugPrint()) {
         Serial.println("GENERATING");
       }
       currentPiece = bag.getNextPiece();
-      orientation = 0;
-      currentX = 4;
-      currentY = BUFFER_ZONE_HEIGHT;
-      lockDownTimerMs = LOCK_DOWN_TIMER;
-      lockDownMaxY = -100;
-      lockingDownAt = -1;
+      pieceSetup();
 
       // The game can end now if the newly generated piece overlaps with another one
       gameOver = isBlockedOut();
@@ -307,6 +327,7 @@ class TetrisEngine {
         Tetromino* intermediatePiece = heldPiece;
         heldPiece = currentPiece;
         currentPiece = intermediatePiece;
+        pieceSetup();
         return;
       }
 
@@ -317,14 +338,18 @@ class TetrisEngine {
       generation();
     }
 
-    void rotateAndMove() {
-      if (gameController.dropPressed) {
-        // Set currentY to the lowest Y below the current piece that is not occupied
+    int getYAfterHardDrop() {
         int yToDrop = 0;
         while (!isCollisionDetected(currentX, currentY + yToDrop + 1, orientation)) {
           yToDrop++;
         }
-        currentY += yToDrop;
+        return currentY + yToDrop;
+    }
+
+    void rotateAndMove() {
+      if (gameController.dropPressed) {
+        // Set currentY to the lowest Y below the current piece that is not occupied
+        currentY = getYAfterHardDrop();
         return;
       }
 
@@ -503,7 +528,6 @@ class TetrisEngine {
         }
         justLocked = false;
         firstIteration = false;
-        drawAllThisIteration = true;
       }
 
       updateLockDownTimer();
