@@ -52,7 +52,9 @@ class GameController {
 
           // That means this was held - check for das
           if (leftPressedAt != -1 && (currentTime - leftPressedAt > _dasDelay)) {
-            leftDas = true;
+            // If both right and left are held, but right was pushed later, don't turn
+            // on left das
+            leftDas = !(rightPressedAt != -1 && rightPressedAt > leftPressedAt);
           }
         }
       } else {
@@ -72,7 +74,9 @@ class GameController {
 
           // That means this was held - check for das
           if (rightPressedAt != -1 && (currentTime - rightPressedAt > _dasDelay)) {
-            rightDas = true;
+            // If both right and left are held, but left was pushed later, don't turn
+            // on right das
+            rightDas = !(leftPressedAt != -1 && leftPressedAt > rightPressedAt);
           }
         }
       } else {
