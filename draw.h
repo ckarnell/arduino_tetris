@@ -117,14 +117,14 @@ void drawDigit(int digit, int startingX, int startingY, int color) {
 
       break;
     case 1:
+      // 111
       //1111
       // 111
       // 111
       // 111
       // 111
-      // 111
 
-      newDrawPixel(startingX, startingY+4, color);
+      newDrawPixel(startingX, startingY+3, color);
       newFillRect(startingX + 1, startingY, 3, 5, color);
 
       break;
@@ -283,6 +283,28 @@ void drawLetter(char letter, int startingX, int startingY, int color) {
       newDrawPixel(startingX+2, startingY+2, color);
       newDrawLine(startingX, startingY+4, startingX+3, startingY+4, color);
       break;
+    case 'H':
+      //H  H
+      //H  H
+      //HHHH
+      //H  H
+      //H  H
+
+      newDrawLine(startingX, startingY, startingX, startingY+4, color);
+      newDrawLine(startingX+3, startingY, startingX+3, startingY+4, color);
+      newDrawLine(startingX+1, startingY+2, startingX+2, startingY+2, color);
+      break;
+    case 'I':
+      //IIII
+      // II 
+      // II 
+      // II 
+      //IIII
+
+      newDrawLine(startingX, startingY, startingX+3, startingY, color);
+      newDrawLine(startingX, startingY+4, startingX+3, startingY+4, color);
+      newFillRect(startingX+1, startingY+1, 2, 3, color);
+      break;
     case 'M':
       //MMMM
       //MMMM
@@ -347,29 +369,45 @@ void drawLetter(char letter, int startingX, int startingY, int color) {
   }
 }
 
-void drawGameOver() {
-  drawLetter('G', 0, 0, CYAN);
-  drawLetter('A', LETTER_WIDTH, 0, VIOLET);
-  drawLetter('M', LETTER_WIDTH*2, 0, RED);
-  drawLetter('E', LETTER_WIDTH*3, 0, YELLOW);
-  drawLetter('O', LETTER_WIDTH*4, 0, GREEN);
-  drawLetter('V', LETTER_WIDTH*5, 0, ORANGE);
-  drawLetter('E', LETTER_WIDTH*6, 0, BLUE);
-  drawLetter('R', LETTER_WIDTH*7, 0, CYAN);
+void drawGameOver(int y) {
+  drawLetter('G', 0,              y, CYAN);
+  drawLetter('A', LETTER_WIDTH,   y, VIOLET);
+  drawLetter('M', LETTER_WIDTH*2, y, RED);
+  drawLetter('E', LETTER_WIDTH*3, y, YELLOW);
+  drawLetter('O', LETTER_WIDTH*4, y, GREEN);
+  drawLetter('V', LETTER_WIDTH*5, y, ORANGE);
+  drawLetter('E', LETTER_WIDTH*6, y, BLUE);
+  drawLetter('R', LETTER_WIDTH*7, y, CYAN);
 }
 
-void drawNumber(long long* num, int y) {
+void drawScore(int y) {
+  drawLetter('S', 0, y, matrix.Color333(5, 5, 5));
+  drawLetter('C', LETTER_WIDTH + 1, y, matrix.Color333(5, 5, 5));
+  drawLetter('O', LETTER_WIDTH*2 + 2, y, matrix.Color333(5, 5, 5));
+  drawLetter('R', LETTER_WIDTH*3 + 3, y, matrix.Color333(5, 5, 5));
+  drawLetter('E', LETTER_WIDTH*4 + 4, y, matrix.Color333(5, 5, 5));
+}
+
+void drawHigh(int y) {
+  drawLetter('H', 0, y, matrix.Color333(5, 5, 5));
+  drawLetter('I', LETTER_WIDTH + 1, y, matrix.Color333(5, 5, 5));
+  drawLetter('G', LETTER_WIDTH*2 + 2, y, matrix.Color333(5, 5, 5));
+  drawLetter('H', LETTER_WIDTH*3 + 3, y, matrix.Color333(5, 5, 5));
+}
+
+void drawNumber(long long* originalNum, int y) {
+  long long num = *originalNum;
   int startX = matrix.height() - 4;
   int color = BRIGHT;
   int numToDraw;
 
   while (startX >= 0) {
-    numToDraw = *num % 10;
+    numToDraw = num % 10;
     Serial.print("Drawing num: ");
     Serial.println(numToDraw);
     color = color == DIM ? BRIGHT : DIM;
     drawDigit(numToDraw, startX, y, color);
-    *num /= 10;
+    num /= 10;
     startX -= 4;
   }
 }

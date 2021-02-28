@@ -1,10 +1,7 @@
 #include "engine.h"
 #include "draw.h"
 
-// Joystick
-//#define joySw 49
-//#define joyY A7
-//#define joyX A8
+// Random seed
 #define seed A9
 
 // Buttons
@@ -29,7 +26,6 @@ void setup() {
   randomSeed(analogRead(seed));
   pinMode(clockwiseButton, INPUT);
   pinMode(counterClockwiseButton, INPUT);
-//  pinMode(joySw, INPUT);
   pinMode(upButton, INPUT);
   pinMode(leftButton, INPUT);
   pinMode(rightButton, INPUT);
@@ -44,26 +40,30 @@ long timeBeforeSleep = 60000;
 
 
 struct Controls controls;
-int joySwPushed = false;
-int joySwReleased = false;
+int newGamePushed = false;
+int newGameReleased = false;
 long long highScore = 0;
 
 
 void loop() {
-  int swValue = digitalRead(counterClockwiseButton); // 0 when pushed, random otherwise
-  if (gameOver && joySwPushed && !swValue) {
-    joySwReleased = true;
-  }
   int upValue = digitalRead(upButton);
   int leftValue = digitalRead(leftButton);
   int rightValue = digitalRead(rightButton);
   int downValue = digitalRead(downButton);
   int holdValue = digitalRead(holdButton);
-  joySwPushed = swValue;
   
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
-  
+
+  if (!newGamePushed) {
+    newGamePushed = counterClockwiseButtonValue == 1;
+  }
+
+  if (gameOver && newGamePushed && counterClockwiseButtonValue == 0) {
+    newGameReleased = true;
+    newGamePushed = false;
+  }
+
   controls = {
     rightValue, // Right
     leftValue, // Left
@@ -74,29 +74,61 @@ void loop() {
     false, // Rotate 180
     holdValue, // Hold
   };
-  
+
   if (gameOver && !gameOverDrawn) {
     highScore = tetrisEngine.score > highScore ? tetrisEngine.score : highScore;
-    clearBottom();
     gameOverDrawn = true;
-    drawGameOver();
-    int scoreHeight = 28;
-    int scoreTitleOffset = 7;
-    newFillRect(0, scoreHeight, matrix.height(), 7 + 6, matrix.Color333(0, 0, 0));
-    newDrawLine(0, scoreHeight + scoreTitleOffset + 6, matrix.height() - 1, scoreHeight + scoreTitleOffset + 6, matrix.Color333(2, 2, 2));
-    newDrawLine(0, scoreHeight - 1, matrix.height() - 1, scoreHeight - 1, matrix.Color333(2, 2, 2));
-    drawLetter('S', 0, scoreHeight + scoreTitleOffset, matrix.Color333(5, 5, 5));
-    drawLetter('C', LETTER_WIDTH + 1, scoreHeight + scoreTitleOffset, matrix.Color333(5, 5, 5));
-    drawLetter('O', LETTER_WIDTH*2 + 2, scoreHeight + scoreTitleOffset, matrix.Color333(5, 5, 5));
-    drawLetter('R', LETTER_WIDTH*3 + 3, scoreHeight + scoreTitleOffset, matrix.Color333(5, 5, 5));
-    drawLetter('E', LETTER_WIDTH*4 + 4, scoreHeight + scoreTitleOffset, matrix.Color333(5, 5, 5));
-    drawNumber(&tetrisEngine.score, scoreHeight + 1);
+
+    int wordHeightOffset = 6; // Height of font + 1 space + 1 to set next draw location
+    int currentY = 18;
+    int lineOffset = 1;
+    int highestY = currentY + lineOffset*4 + wordHeightOffset*5;
+
+    newDrawLine(0, currentY - 1, matrix.height() - 1, currentY - 1, matrix.Color333(2, 2, 2));
+    newDrawLine(0, highestY, matrix.height() - 1, highestY, matrix.Color333(2, 2, 2));
+    newFillRect(0, currentY, matrix.height(), highestY - currentY, matrix.Color333(0, 0, 0));
+
+    currentY += lineOffset;
+
+    drawNumber(&highScore, currentY);
+    currentY += wordHeightOffset;
+
+    drawHigh(currentY);
+    currentY += wordHeightOffset + lineOffset;
+
+    drawNumber(&tetrisEngine.score, currentY);
+    currentY += wordHeightOffset;
+
+    drawScore(currentY);
+    currentY += wordHeightOffset + lineOffset;
+
+
+    drawGameOver(currentY);
+    /* currentY += wordHeightOffset; */
+
+    /* newDrawLine(0, currentY, matrix.height() - 1, currentY, matrix.Color333(2, 2, 2)); */
   }
-  
+
+  /* if (gameOver && !gameOverDrawn) { */
+  /*   highScore = tetrisEngine.score > highScore ? tetrisEngine.score : highScore; */
+  /*   gameOverDrawn = true; */
+
+  /*   clearBottom(); // TODO: Move game over and delete */
+  /*   drawGameOver(0); */
+  /*   int scoreHeight = 32; */
+  /*   int scoreTitleOffset = 7; */
+  /*   int currentY = 32; */
+  /*   drawNumber(&tetrisEngine.score, scoreHeight + 1); */
+  /*   newFillRect(0, scoreHeight, matrix.height(), 7 + 6, matrix.Color333(0, 0, 0)); */
+  /*   newDrawLine(0, scoreHeight + scoreTitleOffset + 6, matrix.height() - 1, scoreHeight + scoreTitleOffset + 6, matrix.Color333(2, 2, 2)); */
+  /*   newDrawLine(0, scoreHeight - 1, matrix.height() - 1, scoreHeight - 1, matrix.Color333(2, 2, 2)); */
+  /*   drawScore(scoreHeight + scoreTitleOffset); */
+  /* } */
+
   if (gameOver) {
     firstIteration = true;
-    if (joySwReleased) {
-      joySwReleased = false;
+    if (newGameReleased) {
+      newGameReleased = false;
       gameOver = false;
     }
     if (millis() - gameOverAt > timeBeforeSleep) {
@@ -104,14 +136,14 @@ void loop() {
       clearMatrix();
     }
   }
-  
+
   if (!gameOver) {
      gameOverDrawn = false;
      if 
      (firstIteration) {
         long long fakeScore = 12345678; // DEBUG
-//        translateScoreIntoScoreRep(fakeScore); // DEBUG
         tetrisEngine.prepareNewGame();
+
         // Draw border and a placeholder for score
         matrix.drawLine(6, 0, matrix.width()-1, 0, matrix.Color333(2, 2, 2));
         matrix.drawLine(6, 0, 6, matrix.height() - 1, matrix.Color333(2, 2, 2));
@@ -176,8 +208,6 @@ void loop() {
   //        }
         }
       }
-      
-      
     } else if (tetrisEngine.drawThisIteration) {
       // Draw the ghost
       
@@ -193,25 +223,7 @@ void loop() {
          drawSquareNew(x, y, currentColor, 3);
       }
     }
-//    tetrisEngine.loop(controls);
-    
-    firstIteration = false;
-//    for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
-////      Serial.println("HERE");
-////      delay(5000);
-//      for(int x = 1; x < tetrisEngine.fieldWidth; x++) {
-//        matrixRepresentationCopy[y*tetrisEngine.fieldWidth + x] = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
-//      }
-//    }
-    
-//    Serial.println("NEW ITERATION");  
-  }
 
-  ////  if (gameOver) {
-//    oneLoop = false;
-////    Serial.println("");
-//    gameOver = tetrisEngine.loop(controls);
-////    delay(1000);
-//  }
-//  //  Serial.println();
+    firstIteration = false;
+  }
 }
