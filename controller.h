@@ -22,11 +22,9 @@ class GameController {
     bool holdPressed = false;
     bool counterClockwisePressed = false;
 
-    GameController(int dasDelay, int dasSpeed, int dropSpeed) {
+    GameController(int dasDelay) {
       _dasDelay = dasDelay;
-      _dasSpeed = dasSpeed;
       _currentTime = millis();
-      _dropSpeed = dropSpeed;
 
       // "Pressed" means pressed THIS ITERATION - i.e. newly pressed
       leftPressed = false;
@@ -41,16 +39,7 @@ class GameController {
     }
 
     void updateControls(Controls controls, int currentTime) {
-      if (controls.down) {
-        if (lastDropAt == -1 || (currentTime - lastDropAt) > _dropSpeed) {
-          lastDropAt = currentTime;
-          downHeld = true;
-        } else {
-          downHeld = false;
-        }
-      } else {
-        downHeld = false;
-      }
+      downHeld = controls.down;
 
       if (controls.left) {
         if (leftPressedAt == -1) {
@@ -65,14 +54,7 @@ class GameController {
           if (leftPressedAt != -1 && (currentTime - leftPressedAt > _dasDelay)) {
             // If both right and left are held, but right was pushed later, don't turn
             // on left das
-            if (!(rightPressedAt != -1 && rightPressedAt > leftPressedAt)) {
-              if (leftDasAt == -1 || (currentTime - leftDasAt) > _dasSpeed) {
-                leftDasAt = currentTime;
-                leftDas = true;
-              } else {
-                leftDas = false;
-              }
-            }
+            leftDas = !(rightPressedAt != -1 && rightPressedAt > leftPressedAt);
           }
         }
       } else {
@@ -94,14 +76,7 @@ class GameController {
           if (rightPressedAt != -1 && (currentTime - rightPressedAt > _dasDelay)) {
             // If both right and left are held, but left was pushed later, don't turn
             // on right das
-            if (!(leftPressedAt != -1 && leftPressedAt > rightPressedAt)) {
-              if (rightDasAt == -1 || currentTime - rightDasAt > _dasSpeed) {
-                rightDasAt = currentTime;
-                rightDas = true;
-              } else {
-                rightDas = false;
-              }
-            }
+            rightDas = !(leftPressedAt != -1 && leftPressedAt > rightPressedAt);
           }
         }
       } else {
@@ -166,13 +141,8 @@ class GameController {
     int leftPressedAt;
     int rightPressedAt;
     int clockwiseHeld;
-    int leftDasAt = -1;
-    int rightDasAt = -1;
     int holdHeld = false;
     int counterClockwiseHeld;
     bool dropHeld = false;
     int _dasDelay;
-    int _dasSpeed;
-    int _dropSpeed;
-    int lastDropAt = -1;
 };
