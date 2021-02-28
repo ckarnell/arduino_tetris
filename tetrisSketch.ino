@@ -26,7 +26,7 @@ void setup() {
   randomSeed(analogRead(seed));
   pinMode(clockwiseButton, INPUT);
   pinMode(counterClockwiseButton, INPUT);
-  pinMode(upButton, INPUT);
+  pinMode(upButton, INPUT_PULLUP);
   pinMode(leftButton, INPUT);
   pinMode(rightButton, INPUT);
   pinMode(downButton, INPUT);
@@ -35,7 +35,7 @@ void setup() {
 
 bool firstIteration = true;
 unsigned char *matrixRepresentationCopy = nullptr;
-long gameOverAt;
+unsigned long gameOverAt;
 long timeBeforeSleep = 60000;
 
 
@@ -51,11 +51,11 @@ void loop() {
   int rightValue = digitalRead(rightButton);
   int downValue = digitalRead(downButton);
   int holdValue = digitalRead(holdButton);
-  
+
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
 
-  if (!newGamePushed) {
+  if (gameOver && !newGamePushed) {
     newGamePushed = counterClockwiseButtonValue == 1;
   }
 
@@ -170,7 +170,7 @@ void loop() {
           for (int x = 0; x < nextPiece -> dimension; x++) {
             if (nextPiece -> orientations[0][y][x] == 1) {
               int adjustedX = x + matrix.height() - 5 - 5*i;
-              newDrawPixel(adjustedX, y, colorMap[nextPiece -> symbolNum]);
+              newDrawPixel(adjustedX, 1-y, colorMap[nextPiece -> symbolNum]);
               /* int xOffset = 5; */
               /* if (nextPiece -> symbolNum == 8) */
               /*   xOffset = -1; */
@@ -189,7 +189,7 @@ void loop() {
       for (int y = 0; y < heldPiece -> dimension; y++) {
         for (int x = 0; x < heldPiece -> dimension; x++) {
           if (heldPiece -> orientations[0][y][x] == 1) {
-            newDrawPixel(x+1, y, colorMap[heldPiece -> symbolNum]);
+            newDrawPixel(x+1, 1-y, colorMap[heldPiece -> symbolNum]);
             /* drawSquareNew(x, y + tetrisEngine.fieldHeight - 1, colorMap[heldPiece -> symbolNum], 2, xOffset); */
           }
         }
