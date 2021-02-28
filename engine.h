@@ -43,6 +43,8 @@ class TetrisEngine {
     };
 
     int currentTime = millis();
+    unsigned long lastDasAt = 0;
+    int dasSpeed = 30;
     int rowsToRemove[4] = {-1, -1, -1, -1};
     int lastDraw = currentTime - 1001;
     bool gameOver = false;
@@ -404,18 +406,31 @@ class TetrisEngine {
         return;
       }
 
-      if (gameController.leftPressed || gameController.leftDas) {
+      if (gameController.leftDas) {
+        if (currentTime - lastDasAt > dasSpeed) {
+          lastDasAt = currentTime;
+
+          if (!isCollisionDetected(currentX - 1, currentY, orientation)) {
+            currentX--;
+          }
+        }
+      } else if (gameController.leftPressed) {
         if (!isCollisionDetected(currentX - 1, currentY, orientation)) {
-          currentX--; // TODO: Use hit detection here
-        /* } */
+          currentX--;
         }
       }
 
-      if (gameController.rightPressed || gameController.rightDas) {
+      if (gameController.rightDas) {
+        if (currentTime - lastDasAt > dasSpeed) {
+          lastDasAt = currentTime;
+
+          if (!isCollisionDetected(currentX + 1, currentY, orientation)) {
+            currentX++;
+          }
+        }
+      } else if (gameController.rightPressed) {
         if (!isCollisionDetected(currentX + 1, currentY, orientation)) {
-        /* if (!rightIsHeld) { */
-          currentX++; // TODO: Use hit detection here
-        /* } */
+          currentX++;
         }
       }
 
