@@ -169,7 +169,8 @@ void loop() {
         for (int y = 0; y < nextPiece -> dimension; y++) {
           for (int x = 0; x < nextPiece -> dimension; x++) {
             if (nextPiece -> orientations[0][y][x] == 1) {
-              newDrawPixel(i*5+7+x, y, colorMap[nextPiece -> symbolNum]);
+              int adjustedX = x + matrix.height() - 5 - 5*i;
+              newDrawPixel(adjustedX, y, colorMap[nextPiece -> symbolNum]);
               /* int xOffset = 5; */
               /* if (nextPiece -> symbolNum == 8) */
               /*   xOffset = -1; */
