@@ -45,6 +45,8 @@ class TetrisEngine {
     int currentTime = millis();
     unsigned long lastDasAt = 0;
     int dasSpeed = 30;
+    int softDropSpeed = 30;
+    unsigned long lastSoftDropAt = 0;
     int rowsToRemove[4] = {-1, -1, -1, -1};
     int lastDraw = currentTime - 1001;
     bool gameOver = false;
@@ -247,12 +249,16 @@ class TetrisEngine {
       drawThisIteration = true;
     }
 
-    void pieceSetup() {
+    bool pieceSetup() {
       orientation = 0;
       currentX = 4;
 
       // The I piece spawns one higher than the other pieces
       currentY = BUFFER_ZONE_HEIGHT - (currentPiece -> symbolNum == 5 ? 2 : 1);
+
+      if (isBlockedOut()) {
+        return true;
+      }
 
       // The piece is generated one space above the skyline. Check if it can move down immediately,
       // and if it can, move it down.
@@ -263,14 +269,15 @@ class TetrisEngine {
       lockDownMaxY = -100;
       lockingDownAt = -1;
       lastDrop = currentTime;
+      return false;
     }
 
     void generation() {
       currentPiece = bag.getNextPiece();
-      pieceSetup();
+      gameOver = pieceSetup();
 
       // The game can end now if the newly generated piece overlaps with another one
-      gameOver = isBlockedOut();
+      /* gameOver = isBlockedOut(); */
     }
 
     bool isCollisionDetected(int newX, int newY, int newOrientation) {
@@ -495,6 +502,9 @@ class TetrisEngine {
     bool isBlockedOut() {
       // This is a game over condition that occurs when a newly generated piece overlaps
       // with another piece.
+      if (isCollisionDetected(currentX, currentY, orientation)) {
+        Serial.println("BLOCKED OUT");
+      }
       return isCollisionDetected(currentX, currentY, orientation);
     }
 
@@ -518,6 +528,7 @@ class TetrisEngine {
         }
       }
 
+      Serial.println("LOCKED OUT");
       return true;
     }
 
@@ -537,7 +548,14 @@ class TetrisEngine {
     }
 
     bool shouldPieceTryToFall() {
-      return gameController.downHeld || currentTime - lastDrop > dropAfter;
+      if (currentTime - lastDrop > dropAfter) {
+        return true;
+      }
+      if (gameController.downHeld && (currentTime - lastSoftDropAt) > softDropSpeed) {
+        lastSoftDropAt = currentTime;
+        return true;
+      }
+      return false;
     }
 
     void handlePieceTryToFall() {

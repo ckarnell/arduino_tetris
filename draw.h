@@ -61,16 +61,13 @@ void clearMatrix() {
 int scoreRep[SCORE_DIGITS] = {0, 0, 0, 0, 0, 0, 0, 0};
 
 void translateScoreIntoScoreRep(long long score) {
-  Serial.print("Score: ");
   for (int i = 0; i < SCORE_DIGITS; i++) {
     int currentDigitInd = SCORE_DIGITS - 1 - i;
     int divideBy = pow(10, i);
     score /= divideBy;
     scoreRep[i] = score % 10;
-    Serial.print(scoreRep[i]);
 //    long long currentDigitValue = score % divideBy;
   }
-  Serial.println("");
 }
 
 /* void newFillRect(int startX, int startY, int endX, int endY, int color) { */
@@ -406,7 +403,6 @@ void drawNumber(long long* originalNum, int y) {
 
   while (startX >= 0) {
     numToDraw = num % 10;
-    Serial.print("Drawing num: ");
     Serial.println(numToDraw);
     color = color == DIM ? BRIGHT : DIM;
     drawDigit(numToDraw, startX, y, color);
