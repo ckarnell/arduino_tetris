@@ -9,8 +9,7 @@
 
 #include <stdio.h>
 
-const int LOCK_DOWN_TIMER = 2000;
-const bool DEBUG = false;
+const int LOCK_DOWN_TIMER = 1500;
 const int INDICES_TO_DRAW_LENGTH = 10;
 
 const int MAIN_MATRIX_HEIGHT = 20;
@@ -26,13 +25,23 @@ float getSpeedInMillisecondsByLevel(int level)
   return timeInMilliseconds;
 }
 
+struct TSpinInfo {
+  bool tSpin;
+  bool miniTSpin;
+};
 
 class TetrisEngine {
   public:
     /* PieceBag bag; */
-    GameController gameController = GameController(300);
+    GameController gameController = GameController(300, 25, 30);
     Tetromino* currentPiece;
     PieceBag bag;
+
+    struct TSpinInfo tSpinInfo = {
+      false,
+      false,
+    };
+
 
     int currentTime = millis();
     int rowsToRemove[4] = {-1, -1, -1, -1};
@@ -49,14 +58,16 @@ class TetrisEngine {
     bool pieceHeldThisIteration = false;
     bool pieceHeldThisPieceFall = false;
 
-    // Piece creation
-    bool justLocked = false;
-
     // Score
-    int score = 0;
+    long long score = 0;
     int rowsCleared = 0;
     int currentLevel = 1;
     int rowsThisLevel = 0;
+    bool backToBack = false;
+    int rowsRemovedThisIteration = 0;
+    int rowsSoftDroppedThisPiece = 0;
+    int rowsHardDroppedThisPiece = 0;
+    bool tspinThisPiece = false;
 
     // Drop
     int lastDrop = currentTime;
@@ -75,31 +86,83 @@ class TetrisEngine {
     int currentX;
     int currentY;
     int orientation = 0;
+    bool justLocked = false;
 
     // Board state
     unsigned char *matrixRepresentation = nullptr;
     int indicesToDraw[INDICES_TO_DRAW_LENGTH] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     int indForIndicesToDraw = 0;
     int pastCoordinates[4] = {-1, -1, -1, -1};
+    int pastGhostCoordinates[4] = {-1, -1, -1, -1};
     // Use this to compute drop locations faster
     /* int lowestOccupiedYValues[12] = {-100, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, -100}; */
+
+    void drawGhostOnBoard() {
+      return;
+      int currentDimension = currentPiece -> dimension;
+
+      // Undraw past coordinates for the current ghost, if it has them.
+      if (pastGhostCoordinates[0] != -1) {
+        for (int i = 0; i < 4; i++) {
+          matrixRepresentation[pastGhostCoordinates[i]] = 0;
+        }
+      }
+
+      int currentGhostY = getYModifierAfterHardDrop() + currentY;
+      int pastCoordInd = 0;
+      int newPastGhostCoordinates[4] = {-1, -1, -1, -1};
+
+      for (int y = 0; y < currentDimension; y++) {
+        for (int x = 0; x < currentDimension; x++) {
+          int minoRepresentation = currentPiece -> orientations[orientation][y][x];
+          if (minoRepresentation == 1) {
+            int charToDraw = 10;
+            matrixRepresentation[(y + currentGhostY)*fieldWidth + (x + currentX)] = charToDraw;
+            int pastCoord = (y + currentGhostY)*fieldWidth + (x + currentX);
+            newPastGhostCoordinates[pastCoordInd] = pastCoord;
+
+            // This is the first time this ghost is on the board, so draw it
+            if (generationThisIteration) {
+              addIndexToDraw((y + currentGhostY)*fieldWidth + (x + currentX));
+            }
+            pastCoordInd++;
+          }
+        }
+      }
+
+      // Mark the diff between what was on the board before and what is on the board now for printing
+      if (pastGhostCoordinates[0] != -1) {
+        for (int i = 0; i < 4; i++) {
+          bool newCoordNeedsDrawing = true;
+          for (int j = 0; j < 4; j++) {
+            if (newPastGhostCoordinates[i] == pastGhostCoordinates[j])
+              newCoordNeedsDrawing = false;
+          }
+          if (newCoordNeedsDrawing || pieceHeldThisIteration) 
+            addIndexToDraw(newPastGhostCoordinates[i]);
+        }
+
+        for (int i = 0; i < 4; i++) {
+          bool pastCoordNeedsDrawing = true;
+          for (int j = 0; j < 4; j++) {
+            if (pastGhostCoordinates[i] == newPastGhostCoordinates[j])
+              pastCoordNeedsDrawing = false;
+          }
+          if (pastCoordNeedsDrawing || pieceHeldThisIteration) 
+            addIndexToDraw(pastGhostCoordinates[i]);
+        }
+      }
+
+      // Finally, copy over
+      for (int i = 0; i < 4; i++) {
+        pastGhostCoordinates[i] = newPastGhostCoordinates[i];
+      }
+    }
 
     void drawPieceOnBoard() {
       int currentDimension = currentPiece -> dimension;
       /* int pieceOrientation[4][4]; */
       /* currentPiece -> getOrientation(orientation, pieceOrientation); */
-
-      /* char pieceSym = currentPiece -> getSymbol(); */
-      /* if (justLocked) { */
-      /*   for (int y = currentDimension - 1; y >= 0; y--) { */
-      /*     for (int x = 0; x < currentDimension; x++) { */
-      /*       int minoRepresentation = currentPiece -> orientations[orientation][y][x]; */
-      /*       if (minoRepresentation == 1) { */
-      /*         lowestOccupiedYValues[x + currentX] = y + currentY; */
-      /*       } */
-      /*     } */
-      /*   } */
-      /* } */
 
       // Undraw past coordinates for the current piece, if it has them.
       if (pastCoordinates[0] != -1) {
@@ -119,7 +182,6 @@ class TetrisEngine {
           if (minoRepresentation == 1) {
             int charToDraw = justLocked ? currentPiece -> symbolNum : CURRENT_PIECE_CHAR;
             matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = charToDraw;
-            /* addIndexToDraw((y + currentY)*fieldWidth + (x + currentX)); */
             int pastCoord = justLocked ? -1 : (y + currentY)*fieldWidth + (x + currentX);
             newPastCoordinates[pastCoordInd] = pastCoord;
 
@@ -160,10 +222,6 @@ class TetrisEngine {
         pastCoordinates[i] = newPastCoordinates[i];
       }
 
-    }
-
-    bool shouldDebugPrint() {
-      return (DEBUG && currentTime - lastDraw > 1000);
     }
 
     void renderForCli() {
@@ -207,9 +265,6 @@ class TetrisEngine {
     }
 
     void generation() {
-      if (shouldDebugPrint()) {
-        Serial.println("GENERATING");
-      }
       currentPiece = bag.getNextPiece();
       pieceSetup();
 
@@ -233,12 +288,8 @@ class TetrisEngine {
           int thisX = x + newX;
           int matrixMino = matrixRepresentation[thisY + thisX];
 
-          if (matrixMino != 0 && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
+          if (matrixMino != 10 && matrixMino != 0 && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
             // This is a part of the matrix that is actually occupied
-            if (shouldDebugPrint()) {
-              Serial.println(y + newY);
-              Serial.println(x + newX);
-            }
             return true;
           }
         }
@@ -249,11 +300,11 @@ class TetrisEngine {
 
     void removeRows() {
       // Undraw rows queued for removal
-      int numRowsBeingRemoved = 0;
+      int numRowsToRemove = 0;
       for (int i = 0; i < 4; i++) {
         if (rowsToRemove[i] != -1) {
           /* Serial.println("ABOUT TO REMOVE"); */
-          numRowsBeingRemoved++;
+          numRowsToRemove++;
           for (int y = rowsToRemove[i]; y >= 0; y--) {
             /* Serial.print("Y: "); */
             /* Serial.println(y); */
@@ -273,9 +324,8 @@ class TetrisEngine {
         rowsToRemove[i] = -1;
       }
 
-      if (numRowsBeingRemoved != 0) {
-        rowsCleared += numRowsBeingRemoved;
-        rowsThisLevel += numRowsBeingRemoved;
+      if (numRowsToRemove != 0) {
+        rowsCleared += numRowsToRemove;
         drawAllThisIteration = true;
       }
     }
@@ -293,7 +343,7 @@ class TetrisEngine {
           /* Serial.print("Rep: "); */
           /* Serial.println(matrixRepresentation[y*fieldWidth + x]); */
           int minoRep = matrixRepresentation[y*fieldWidth + x];
-          if (minoRep == 0 || minoRep == 1) {
+          if (minoRep == 0 || minoRep == 1 || minoRep == 10) {
             // This slot is empty, so we don't queue this row
             queueThisRow = false;
           }
@@ -302,6 +352,7 @@ class TetrisEngine {
         if (queueThisRow) {
           /* Serial.print("QUEUED: "); */
           /* Serial.println(y); */
+          rowsRemovedThisIteration++;
           rowsToRemove[currentInd] = y;
           currentInd++;
         }
@@ -338,18 +389,19 @@ class TetrisEngine {
       generation();
     }
 
-    int getYAfterHardDrop() {
+    int getYModifierAfterHardDrop() {
         int yToDrop = 0;
         while (!isCollisionDetected(currentX, currentY + yToDrop + 1, orientation)) {
           yToDrop++;
         }
-        return currentY + yToDrop;
+        return yToDrop;
     }
 
     void rotateAndMove() {
       if (gameController.dropPressed) {
         // Set currentY to the lowest Y below the current piece that is not occupied
-        currentY = getYAfterHardDrop();
+        rowsHardDroppedThisPiece = getYModifierAfterHardDrop();
+        currentY = currentY + rowsHardDroppedThisPiece;
         return;
       }
 
@@ -374,9 +426,8 @@ class TetrisEngine {
         int potentialNewOrientation = (orientation + 1) % 4;
 
         // Iterate through the possible ways we can rotate the piece until we find one or don't
-        for (int i = 0; i < 4 && !foundFittingPosition; i++) {
+        for (int i = 0; i < 5 && !foundFittingPosition; i++) {
           /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
-          /* , currentX + currentPiece -> possibleRotations[i][0], currentY + currentPiece -> possibleRotations[i][1] */
           foundFittingPosition = !isCollisionDetected(
               currentX + currentPiece -> offsets[orientation][1][i][0],
               currentY + currentPiece -> offsets[orientation][1][i][1],
@@ -441,9 +492,6 @@ class TetrisEngine {
       }
 
       int currentDimension = currentPiece -> dimension;
-      /* int currentPieceOrientation[4][4]; */ // TODO: Delete these
-      /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
-      /* currentPiece -> getOrientation(orientation, currentPieceOrientation); */
 
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
@@ -479,8 +527,10 @@ class TetrisEngine {
     }
 
     void handlePieceTryToFall() {
+      // Modifies currentY, lockingDownAt, lastDrop, and rowsSoftDroppedThisPiece
       if (canPieceFall()) {
         // No collision, actually drop
+        rowsSoftDroppedThisPiece += gameController.downHeld ? 1 : 0;
         currentY++;
         lastDrop = currentTime;
         lockingDownAt = -1;
@@ -494,6 +544,124 @@ class TetrisEngine {
       }
       lockingDownAt = currentTime;
       lockDownMaxY = currentY;
+    }
+
+    bool checkIfSquareIsOccupied(int x, int y) {
+      int indToCheck = (y*fieldWidth) + x;
+      return matrixRepresentation[indToCheck] != 0 && matrixRepresentation[indToCheck] != 10;
+    }
+
+    void updateTspinInfo() {
+      // Updates tSpinInfo
+      if (!(currentPiece -> symbolNum == 2)) {
+        return;
+      }
+
+      if (tSpinInfo.tSpin) {
+        // We already know this is a t-spin because rotation point 5 was used to rotate
+        // the piece
+        return;
+      }
+
+      int A[2] = {
+        currentX + (orientation == 0 || orientation == 3 ? 0 : 2),
+        currentY + (orientation < 2 ? 0 : 2),
+      };
+      int B[2] = {
+        currentX + (orientation < 2 ? 2 : 0),
+        currentY + (orientation == 0 || orientation == 3 ? 0 : 2),
+      };
+      int C[2] = {
+        currentX + (orientation < 2 ? 0 : 2), 
+        currentY + (orientation == 0 || orientation == 3 ? 2 : 0),
+      };
+      int D[2] = {
+        currentX + (orientation == 0 || orientation == 3 ? 2 : 0),
+        currentY + (orientation < 2 ? 2 : 0), 
+      };
+
+      bool AContact = checkIfSquareIsOccupied(A[0], A[1]);
+      bool BContact = checkIfSquareIsOccupied(B[0], B[1]);
+      bool CContact = checkIfSquareIsOccupied(C[0], C[1]);
+      bool DContact = checkIfSquareIsOccupied(D[0], D[1]);
+
+      if ((AContact && BContact) && (CContact || DContact)) {
+        tSpinInfo.tSpin = true;
+        return;
+      }
+
+      if ((CContact && DContact) && (AContact || BContact)) {
+        tSpinInfo.miniTSpin = true;
+        return;
+      }
+    }
+
+    void updateScoreAndBackToBack() {
+      int numRowsToAdd = 0;
+      // Updates backToBack, score, and tSpinInfo
+      updateTspinInfo();
+      bool isTspin = tSpinInfo.tSpin;
+      bool isMiniTspin = tSpinInfo.miniTSpin;
+      int scoreToAdd = 0;
+
+      float backToBackMultiplier = backToBack ? 0.5 : 0;
+
+      if (rowsRemovedThisIteration == 4 || (isTspin && rowsRemovedThisIteration > 0)) {
+        backToBack = true;
+      } else {
+        backToBack = false;
+      }
+
+      switch (rowsRemovedThisIteration) {
+        case 0:
+          if (isTspin) {
+            scoreToAdd += 400*currentLevel;
+            numRowsToAdd += 4;
+          } else if (isMiniTspin) {
+            scoreToAdd += 100*currentLevel;
+            numRowsToAdd += 1;
+          } else {
+            scoreToAdd = (rowsSoftDroppedThisPiece * 1) + (rowsHardDroppedThisPiece * 2);
+          }
+          break;
+        case 1: // Single
+          if (isTspin) {
+            numRowsToAdd += 8;
+            scoreToAdd += 800*currentLevel;
+          } else if (isMiniTspin) {
+            numRowsToAdd += 2;
+            scoreToAdd += 200*currentLevel;
+          } else {
+            numRowsToAdd += 1;
+            scoreToAdd += 100*currentLevel;
+          }
+          break;
+        case 2: // Double
+          if (isTspin) {
+            scoreToAdd += 1200*currentLevel;
+            numRowsToAdd += 12;
+          } else  {
+            scoreToAdd += 300*currentLevel;
+            numRowsToAdd += 3;
+          }
+          break;
+        case 3: // Triple
+          if (isTspin) {
+            scoreToAdd += 1200*currentLevel;
+            numRowsToAdd += 16;
+          } else  {
+            scoreToAdd += 300*currentLevel;
+            numRowsToAdd += 5;
+          }
+          break;
+        case 4: // Tetris
+          scoreToAdd += 800*currentLevel;
+            numRowsToAdd += 8;
+          break;
+      }
+
+      rowsThisLevel += numRowsToAdd + numRowsToAdd*backToBackMultiplier;
+      score += scoreToAdd + scoreToAdd*backToBackMultiplier;
     }
 
     void updateLockDownTimer() {
@@ -510,16 +678,12 @@ class TetrisEngine {
       indForIndicesToDraw = 0;
       generationThisIteration = false;
       pieceHeldThisIteration = false;
+      rowsRemovedThisIteration = 0;
 
       for (int x = 0; x < 10; x++)
         indicesToDraw[x] = -1;
 
       currentTime = millis();
-      if (shouldDebugPrint()) {
-        Serial.print("LOCK: ");
-        Serial.println(lockDownTimerMs);
-      }
-
       if (justLocked || firstIteration) {
         generationThisIteration = true;
         generation();
@@ -536,26 +700,33 @@ class TetrisEngine {
         justLocked = true;
         pieceHeldThisPieceFall = false;
 
-        // TODO: Handle score update
         // The game could be over if we just locked a piece
-        /* drawAllThisIteration = true; */
       } else if (shouldPieceTryToFall()) {
-        if (shouldDebugPrint()) {
-          Serial.println("FALLING");
-        }
         handlePieceTryToFall();
       }
 
       // Update and respond to input
       gameController.updateControls(controls, currentTime);
-      handleHold();
-      rotateAndMove();
+      if (!justLocked) {
+        handleHold();
+        rotateAndMove();
+      }
 
 
+      if (!justLocked) {
+        drawGhostOnBoard();
+      }
       drawPieceOnBoard();
 
       if (justLocked) {
         queueRowsForRemoval();
+
+        updateScoreAndBackToBack();
+        rowsSoftDroppedThisPiece = 0;
+        rowsHardDroppedThisPiece = 0;
+        tSpinInfo.tSpin = false;
+        tSpinInfo.miniTSpin = false;
+
         removeRows();
 
         // There may be a game over at this point
@@ -565,34 +736,14 @@ class TetrisEngine {
         }
 
         // Decide whether to increase the level and difficulty
-        /* if (currentLevel < 15 && rowsThisLevel >= currentLevel*5) { */
-        if (currentLevel < 15 && rowsCleared >= currentLevel*10) {
+        if (currentLevel < 15 && rowsThisLevel >= currentLevel*5) {
+        /* if (currentLevel < 15 && rowsCleared >= currentLevel*10) { */
           currentLevel++;
           rowsThisLevel = 0;
           dropAfter = getSpeedInMillisecondsByLevel(currentLevel);
         }
       }
 
-      if (shouldDebugPrint()) {
-        /* for (int i = 0; i < 12; i++) { */
-        /*   Serial.print(lowestOccupiedYValues[i]); */
-        /*   Serial.print(" "); */
-        /* } */
-        Serial.println("");
-
-        Serial.print("Piece: ");
-        char pieceSym = currentPiece -> symbolNum;
-        Serial.println(pieceSym);
-        Serial.print("X: ");
-        Serial.println(currentX);
-        Serial.print("Y: ");
-        Serial.println(currentY);
-        renderForCli();
-      }
-
-      if (shouldDebugPrint()) {
-        lastDraw = currentTime; // For CLI debugging
-      }
       return gameOver;
     }
 
@@ -642,22 +793,5 @@ class TetrisEngine {
       // Note that this includes a "buffer zone" above the main viewable board,
       // which won't be rendered, but is important for game state management.
       matrixRepresentation = new unsigned char[fieldWidth*fieldHeight]; // Create play field buffer
-      /* prepareNewGame(); */
-      /* for (int y = 0; y < fieldHeight; y++) { */
-      /*   for (int x = 0; x < fieldWidth; x++) { // Board Boundary */
-      /*     // "1" represents a border, "0" is anything else. */
-      /*     matrixRepresentation[y*fieldWidth + x] = 0; */
-      /*     if (x == 0) { */
-      /*       // This is the first element of the line, it's a border character. */
-      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
-      /*     } else if (x == fieldWidth - 1) { */
-      /*       // This is the last element of the line, it's a border character. */
-      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
-      /*     } else if (y == fieldHeight - 1) { */
-      /*       // This is the last row of the board, every character on this row is a border character. */
-      /*       matrixRepresentation[y*fieldWidth + x] = 1; */
-      /*     } */
-      /*   } */
-      /* } */
     }
 };
