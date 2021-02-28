@@ -36,7 +36,7 @@ int adjustYCoord(int yCoord, int multiplier) {
   // f(24) = 0
   int result = (MAIN_MATRIX_HEIGHT+BUFFER_ZONE_HEIGHT+BORDER_SIZE)*multiplier; // Start with the max height
   result -= yCoord*multiplier;
-  return result;
+  return result - 3;
 }
 
 void drawSquareNew(int xCoord, int yCoord, int color, int multiplier, int xOffset = 0) {
@@ -51,15 +51,7 @@ void drawSquareNew(int xCoord, int yCoord, int color, int multiplier, int xOffse
 }
 
 void clearBottom() {
-  matrix.fillRect(0, 0, 6, matrix.height(), matrix.Color333(0, 0, 0));
-}
-
-void clearNextPieces() {
-  matrix.fillRect(0, 9, 6, matrix.height(), matrix.Color333(0, 0, 0));
-}
-
-void clearHeldPiece() {
-  matrix.fillRect(0, 0, 6, 8, matrix.Color333(0, 0, 0));
+  matrix.fillRect(0, 0, 2, matrix.height(), matrix.Color333(0, 0, 0));
 }
 
 void clearMatrix() {
@@ -95,6 +87,17 @@ void newDrawLine(int startX, int startY, int endX, int endY, int color) {
 void newDrawPixel(int x, int y, int color) {
   matrix.drawPixel(y, x, color);
 }
+
+void clearNextPieces() {
+  /* matrix.fillRect(0, 9, 6, matrix.height(), matrix.Color333(0, 0, 0)); */
+  newFillRect(6, 0, matrix.height(), 3, matrix.Color333(0, 0, 0));
+}
+
+void clearHeldPiece() {
+  newFillRect(0, 0, 5, 3, matrix.Color333(0, 0, 0));
+  /* matrix.fillRect(0, 0, 6, 8, matrix.Color333(0, 0, 0)); */
+}
+
 
 
 void drawDigit(int digit, int startingX, int startingY, int color) {

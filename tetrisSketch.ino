@@ -144,15 +144,16 @@ void loop() {
         long long fakeScore = 12345678; // DEBUG
         tetrisEngine.prepareNewGame();
 
-        // Draw border and a placeholder for score
-        matrix.drawLine(6, 0, matrix.width()-1, 0, matrix.Color333(2, 2, 2));
-        matrix.drawLine(6, 0, 6, matrix.height() - 1, matrix.Color333(2, 2, 2));
-        matrix.drawLine(6, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
+        // Draw border
+        newDrawLine(0, 4, 0, matrix.width()-1, matrix.Color333(2, 2, 2));
+        matrix.drawLine(3, 0, 3, matrix.height() - 1, matrix.Color333(2, 2, 2));
+        matrix.drawLine(3, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
 
         clearBottom();
         
         // Draw line separating new pieces from help piece display
-        matrix.drawLine(0, 8, 6, 8, matrix.Color333(2, 2, 2));
+        newDrawLine(5, 0, 5, 2, matrix.Color333(2, 2, 2));
+        /* matrix.drawLine(0, 8, 6, 8, matrix.Color333(2, 2, 2)); */
      }
     gameOver = tetrisEngine.loop(controls);
     if (gameOver) {
@@ -162,16 +163,18 @@ void loop() {
     if (tetrisEngine.generationThisIteration) {
       // Print next pieces
       clearNextPieces();
-      for (int i = 0; i < 3; i++) {
+      for (int i = 0; i < 5; i++) {
         Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
         
         for (int y = 0; y < nextPiece -> dimension; y++) {
           for (int x = 0; x < nextPiece -> dimension; x++) {
             if (nextPiece -> orientations[0][y][x] == 1) {
-              int xOffset = nextPiece -> symbolNum == 5 && i == 0 ? -1 : 0;
-              if (nextPiece -> symbolNum == 8)
-                xOffset = -1;
-              drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 2, xOffset);
+              newDrawPixel(i*5+7+x, y, colorMap[nextPiece -> symbolNum]);
+              /* int xOffset = 5; */
+              /* if (nextPiece -> symbolNum == 8) */
+              /*   xOffset = -1; */
+              /* drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 1, xOffset); */
+            /* } */
             }
           }
         }
@@ -181,11 +184,12 @@ void loop() {
     if (tetrisEngine.pieceHeldThisIteration) {
       clearHeldPiece();
       Tetromino* heldPiece = tetrisEngine.heldPiece;
-      int xOffset = heldPiece -> symbolNum == 5 ? 1 : 2;
+      /* int xOffset = heldPiece -> symbolNum == 5 ? 1 : 2; */
       for (int y = 0; y < heldPiece -> dimension; y++) {
         for (int x = 0; x < heldPiece -> dimension; x++) {
           if (heldPiece -> orientations[0][y][x] == 1) {
-            drawSquareNew(x, y + tetrisEngine.fieldHeight - 1, colorMap[heldPiece -> symbolNum], 2, xOffset);
+            newDrawPixel(x+1, y, colorMap[heldPiece -> symbolNum]);
+            /* drawSquareNew(x, y + tetrisEngine.fieldHeight - 1, colorMap[heldPiece -> symbolNum], 2, xOffset); */
           }
         }
       }
@@ -210,7 +214,7 @@ void loop() {
       }
     } else if (tetrisEngine.drawThisIteration) {
       // Draw the ghost
-      
+
       // Draw the new piece area
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
          int indexToDraw = tetrisEngine.indicesToDraw[i];

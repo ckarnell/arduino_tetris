@@ -250,7 +250,7 @@ class TetrisEngine {
       currentX = 4;
 
       // The I piece spawns one higher than the other pieces
-      currentY = BUFFER_ZONE_HEIGHT - (currentPiece -> symbolNum == 5 ? 1 : 0);
+      currentY = BUFFER_ZONE_HEIGHT - (currentPiece -> symbolNum == 5 ? 2 : 1);
 
       // The piece is generated one space above the skyline. Check if it can move down immediately,
       // and if it can, move it down.
