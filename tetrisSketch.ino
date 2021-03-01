@@ -52,19 +52,18 @@ void drawGhost() {
     return;
   }
 
-  int ghostColor = matrix.Color333(1, 1, 2);
-
-  for (int i = 0; i < 4; i++) {
-    if (ghostInds[i][0] != -1) {
-       if (tetrisEngine.matrixRepresentation[ghostInds[i][1]*tetrisEngine.fieldWidth + ghostInds[i][0]] == 0) {
-         drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3);
-       }
-       ghostInds[i][0] = -1;
-       ghostInds[i][1] = -1;
+  if (tetrisEngine.rowsRemovedThisIteration != 0) {
+    for (int i = 0; i < 4; i++) {
+      drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3);
+      ghostInds[i][0] = -1;
+      ghostInds[i][1] = -1;
     }
+    return;
   }
 
-  /* int newGhostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}}; */
+  int ghostColor = matrix.Color333(1, 1, 2);
+
+  int newGhostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 
   // Draw the ghost
   int currentGhostInd = 0;
@@ -75,14 +74,39 @@ void drawGhost() {
       if (minoRepresentation == 1) {
         if (tetrisEngine.matrixRepresentation[(currentGhostY + y)*tetrisEngine.fieldWidth + (x + tetrisEngine.currentX)] == 0) {
           drawSquareNew(x + tetrisEngine.currentX, currentGhostY + y, ghostColor, 3);
-          ghostInds[currentGhostInd][0] = x + tetrisEngine.currentX;
-          ghostInds[currentGhostInd][1] = currentGhostY + y;
-          /* newGhostInds[currentGhostInd][0] = x + tetrisEngine.currentX; */
-          /* newGhostInds[currentGhostInd][1] = currentGhostY + y; */
-          currentGhostInd++;
+          newGhostInds[currentGhostInd][0] = x + tetrisEngine.currentX;
+          newGhostInds[currentGhostInd][1] = currentGhostY + y;
+        } else {
+          newGhostInds[currentGhostInd][0] = -1;
+          newGhostInds[currentGhostInd][1] = -1;
         }
+        currentGhostInd++;
       }
     }
+  }
+
+  for (int i = 0; i < 4; i++) {
+    bool shouldDelete = true;
+    for (int j = 0; j < 4; j++) {
+      if (ghostInds[i][0] == newGhostInds[j][0] && ghostInds[i][1] == newGhostInds[j][1]) {
+        shouldDelete = false;
+      }
+    }
+
+    if (ghostInds[i][0] != -1 && shouldDelete) {
+       if (tetrisEngine.matrixRepresentation[ghostInds[i][1]*tetrisEngine.fieldWidth + ghostInds[i][0]] == 0) {
+         drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3);
+       }
+       ghostInds[i][0] = -1;
+       ghostInds[i][1] = -1;
+    }
+  }
+
+
+  // Copy over
+  for (int i = 0; i < 4; i++) {
+    ghostInds[i][0] = newGhostInds[i][0];
+    ghostInds[i][1] = newGhostInds[i][1];
   }
 }
 
@@ -241,8 +265,6 @@ void loop() {
 
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
-      drawGhost();
-
       for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
         for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
           int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
@@ -258,36 +280,9 @@ void loop() {
   //        }
         }
       }
+      drawGhost();
     } else if (tetrisEngine.drawThisIteration) {
       drawGhost();
-      /* // Undraw the last ghost */
-      /* for (int i = 0; i < 4; i++) { */
-      /*   if (ghostInds[i][0] != -1) { */
-      /*      if (tetrisEngine.matrixRepresentation[ghostInds[i][1]*tetrisEngine.fieldWidth + ghostInds[i][0]] == 0) { */
-      /*        drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3); */
-      /*      } */
-      /*      ghostInds[i][0] = -1; */
-      /*      ghostInds[i][1] = -1; */
-      /*   } */
-      /* } */
-
-      /* // Draw the ghost */
-      /* int currentGhostInd = 0; */
-      /* int currentGhostY = tetrisEngine.getYModifierAfterHardDrop() + tetrisEngine.currentY; */
-      /* for (int y = 0; y < tetrisEngine.currentPiece -> dimension; y++) { */
-      /*   for (int x = 0; x < tetrisEngine.currentPiece -> dimension; x++) { */
-      /*     int minoRepresentation = tetrisEngine.currentPiece -> orientations[tetrisEngine.orientation][y][x]; */
-      /*     if (minoRepresentation == 1) { */
-      /*       if (tetrisEngine.matrixRepresentation[(currentGhostY + y)*tetrisEngine.fieldWidth + (x + tetrisEngine.currentX)] == 0) { */
-      /*         drawSquareNew(x + tetrisEngine.currentX, currentGhostY + y, matrix.Color333(1, 1, 1), 3); */
-      /*         ghostInds[currentGhostInd][0] = x + tetrisEngine.currentX; */
-      /*         ghostInds[currentGhostInd][1] = currentGhostY + y; */
-      /*         currentGhostInd++; */
-      /*       } */
-      /*     } */
-      /*   } */
-      /* } */
-
 
       // Draw the new piece area
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
