@@ -14,7 +14,7 @@ const int INDICES_TO_DRAW_LENGTH = 10;
 
 const int MAIN_MATRIX_HEIGHT = 20;
 const int MAIN_MATRIX_WIDTH = 10;
-const int BUFFER_ZONE_HEIGHT = 4;
+const int BUFFER_ZONE_HEIGHT = 5;
 const int BORDER_SIZE = 1;
 const int CURRENT_PIECE_CHAR = 9;
 
@@ -96,71 +96,66 @@ class TetrisEngine {
     int indicesToDraw[INDICES_TO_DRAW_LENGTH] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
     int indForIndicesToDraw = 0;
     int pastCoordinates[4] = {-1, -1, -1, -1};
-    int pastGhostCoordinates[4] = {-1, -1, -1, -1};
     // Use this to compute drop locations faster
     /* int lowestOccupiedYValues[12] = {-100, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, -100}; */
 
-    void drawGhostOnBoard() {
-      return;
-      int currentDimension = currentPiece -> dimension;
+    /* void drawGhostOnBoard() { */
+    /*   /1* return; *1/ */
+    /*   int currentDimension = currentPiece -> dimension; */
+    /*   int charToDraw = 10; */
 
-      // Undraw past coordinates for the current ghost, if it has them.
-      if (pastGhostCoordinates[0] != -1) {
-        for (int i = 0; i < 4; i++) {
-          matrixRepresentation[pastGhostCoordinates[i]] = 0;
-        }
-      }
+    /*   // Undraw past ghost coordinates */
+    /*   for (int i = 0; i < fieldWidth*fieldHeight; i++) { */
+    /*     if (matrixRepresentation[i] == charToDraw) { */
+    /*       matrixRepresentation[i] = 0; */
+    /*       addIndexToDraw(i); */
+    /*     } */
+    /*   } */
 
-      int currentGhostY = getYModifierAfterHardDrop() + currentY;
-      int pastCoordInd = 0;
-      int newPastGhostCoordinates[4] = {-1, -1, -1, -1};
+    /*   int currentGhostY = getYModifierAfterHardDrop() + currentY; */
 
-      for (int y = 0; y < currentDimension; y++) {
-        for (int x = 0; x < currentDimension; x++) {
-          int minoRepresentation = currentPiece -> orientations[orientation][y][x];
-          if (minoRepresentation == 1) {
-            int charToDraw = 10;
-            matrixRepresentation[(y + currentGhostY)*fieldWidth + (x + currentX)] = charToDraw;
-            int pastCoord = (y + currentGhostY)*fieldWidth + (x + currentX);
-            newPastGhostCoordinates[pastCoordInd] = pastCoord;
+    /*   for (int y = 0; y < currentDimension; y++) { */
+    /*     for (int x = 0; x < currentDimension; x++) { */
+    /*       int minoRepresentation = currentPiece -> orientations[orientation][y][x]; */
+    /*       if (minoRepresentation == 1) { */
+    /*         matrixRepresentation[(y + currentGhostY)*fieldWidth + (x + currentX)] = charToDraw; */
 
-            // This is the first time this ghost is on the board, so draw it
-            if (generationThisIteration) {
-              addIndexToDraw((y + currentGhostY)*fieldWidth + (x + currentX));
-            }
-            pastCoordInd++;
-          }
-        }
-      }
+    /*         // This is the first time this ghost is on the board, so draw it */
+    /*         if (generationThisIteration) { */
+    /*           addIndexToDraw((y + currentGhostY)*fieldWidth + (x + currentX)); */
+    /*         } */
+    /*       } */
+    /*     } */
+    /*   } */
 
-      // Mark the diff between what was on the board before and what is on the board now for printing
-      if (pastGhostCoordinates[0] != -1) {
-        for (int i = 0; i < 4; i++) {
-          bool newCoordNeedsDrawing = true;
-          for (int j = 0; j < 4; j++) {
-            if (newPastGhostCoordinates[i] == pastGhostCoordinates[j])
-              newCoordNeedsDrawing = false;
-          }
-          if (newCoordNeedsDrawing || pieceHeldThisIteration) 
-            addIndexToDraw(newPastGhostCoordinates[i]);
-        }
+    /*   // Mark the diff between what was on the board before and what is on the board now for printing */
+    /*   /1* if (pastGhostCoordinates[0] != -1) { *1/ */
+    /*   /1*   for (int i = 0; i < 4; i++) { *1/ */
+    /*   /1*     bool newCoordNeedsDrawing = true; *1/ */
+    /*   /1*     for (int j = 0; j < 4; j++) { *1/ */
+    /*   /1*       if (newPastGhostCoordinates[i] == pastGhostCoordinates[j]) *1/ */
+    /*   /1*         newCoordNeedsDrawing = false; *1/ */
+    /*   /1*     } *1/ */
+    /*   /1*     if (newCoordNeedsDrawing || pieceHeldThisIteration) *1/ */ 
+    /*   /1*       addIndexToDraw(newPastGhostCoordinates[i]); *1/ */
+    /*   /1*   } *1/ */
 
-        for (int i = 0; i < 4; i++) {
-          bool pastCoordNeedsDrawing = true;
-          for (int j = 0; j < 4; j++) {
-            if (pastGhostCoordinates[i] == newPastGhostCoordinates[j])
-              pastCoordNeedsDrawing = false;
-          }
-          if (pastCoordNeedsDrawing || pieceHeldThisIteration) 
-            addIndexToDraw(pastGhostCoordinates[i]);
-        }
-      }
+    /*   /1*   for (int i = 0; i < 4; i++) { *1/ */
+    /*   /1*     bool pastCoordNeedsDrawing = true; *1/ */
+    /*   /1*     for (int j = 0; j < 4; j++) { *1/ */
+    /*   /1*       if (pastGhostCoordinates[i] == newPastGhostCoordinates[j]) *1/ */
+    /*   /1*         pastCoordNeedsDrawing = false; *1/ */
+    /*   /1*     } *1/ */
+    /*   /1*     if (pastCoordNeedsDrawing || pieceHeldThisIteration) *1/ */ 
+    /*   /1*       addIndexToDraw(pastGhostCoordinates[i]); *1/ */
+    /*   /1*   } *1/ */
+    /*   /1* } *1/ */
 
-      // Finally, copy over
-      for (int i = 0; i < 4; i++) {
-        pastGhostCoordinates[i] = newPastGhostCoordinates[i];
-      }
-    }
+    /*   /1* // Finally, copy over *1/ */
+    /*   /1* for (int i = 0; i < 4; i++) { *1/ */
+    /*   /1*   pastGhostCoordinates[i] = newPastGhostCoordinates[i]; *1/ */
+    /*   /1* } *1/ */
+    /* } */
 
     void drawPieceOnBoard() {
       int currentDimension = currentPiece -> dimension;
@@ -227,21 +222,21 @@ class TetrisEngine {
 
     }
 
-    void renderForCli() {
-      for(int y = BUFFER_ZONE_HEIGHT; y < fieldHeight; y++) {
-        /* if (y % MAIN_MATRIX_HEIGHT == 0) { */
-        /*   Serial.print("\n"); */
-        /* } */
+    /* void renderForCli() { */
+    /*   for(int y = BUFFER_ZONE_HEIGHT; y < fieldHeight; y++) { */
+    /*     /1* if (y % MAIN_MATRIX_HEIGHT == 0) { *1/ */
+    /*     /1*   Serial.print("\n"); *1/ */
+    /*     /1* } *1/ */
 
-        Serial.print(y);
-        Serial.print(" ");
-        for(int x = 0; x < fieldWidth; x++) {
-          Serial.print(matrixRepresentation[y*fieldWidth + x]);
-        }
-        Serial.println("");
-      }
-      Serial.println("");
-    }
+    /*     Serial.print(y); */
+    /*     Serial.print(" "); */
+    /*     for(int x = 0; x < fieldWidth; x++) { */
+    /*       Serial.print(matrixRepresentation[y*fieldWidth + x]); */
+    /*     } */
+    /*     Serial.println(""); */
+    /*   } */
+    /*   Serial.println(""); */
+    /* } */
 
     void addIndexToDraw(int indToDraw) {
       indicesToDraw[indForIndicesToDraw] = indToDraw;
@@ -254,7 +249,7 @@ class TetrisEngine {
       currentX = 4;
 
       // The I piece spawns one higher than the other pieces
-      currentY = BUFFER_ZONE_HEIGHT - (currentPiece -> symbolNum == 5 ? 2 : 1);
+      currentY = BUFFER_ZONE_HEIGHT - 2;
 
       if (isBlockedOut()) {
         return true;
@@ -265,9 +260,17 @@ class TetrisEngine {
       if (!isCollisionDetected(currentX, currentY + 1, orientation)) {
         currentY++;
       }
+
+      // Handle / reset lockdown timing
+      if (isCollisionDetected(currentX, currentY + 1, orientation)) {
+        lockDownMaxY = currentY;
+        lockingDownAt = currentTime;
+      } else {
+        lockDownMaxY = -100;
+        lockingDownAt = -1;
+      }
+
       lockDownTimerMs = LOCK_DOWN_TIMER;
-      lockDownMaxY = -100;
-      lockingDownAt = -1;
       lastDrop = currentTime;
       return false;
     }
@@ -296,7 +299,7 @@ class TetrisEngine {
           int thisX = x + newX;
           int matrixMino = matrixRepresentation[thisY + thisX];
 
-          if (matrixMino != 10 && matrixMino != 0 && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
+          if (checkIfSquareIsOccupied(x + newX, y + newY) && matrixMino != CURRENT_PIECE_CHAR && newMinoRepresentation == 1) {
             // This is a part of the matrix that is actually occupied
             return true;
           }
@@ -311,18 +314,13 @@ class TetrisEngine {
       int numRowsToRemove = 0;
       for (int i = 0; i < 4; i++) {
         if (rowsToRemove[i] != -1) {
-          /* Serial.println("ABOUT TO REMOVE"); */
           numRowsToRemove++;
           for (int y = rowsToRemove[i]; y >= 0; y--) {
-            /* Serial.print("Y: "); */
-            /* Serial.println(y); */
             for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE; x++) {
               int indToEdit = y*fieldWidth + x;
               if (y == 0) {
                 matrixRepresentation[indToEdit] = 0;
               } else {
-                /* Serial.print("X: "); */
-                /* Serial.println(x); */
                 matrixRepresentation[indToEdit] = matrixRepresentation[(y - 1)*fieldWidth + x];
               }
               /* } */
@@ -339,17 +337,10 @@ class TetrisEngine {
     }
 
     void queueRowsForRemoval() {
-      /* Serial.println("ABOUT TO QUEUE"); */
       int currentInd = 0;
       for (int y = currentY; y < currentY + currentPiece -> dimension; y++) {
-        /* Serial.print("Y: "); */
-        /* Serial.println(y); */
         bool queueThisRow = true;
         for (int x = BORDER_SIZE; x < fieldWidth - BORDER_SIZE && queueThisRow; x++) {
-          /* Serial.print("X: "); */
-          /* Serial.println(x); */
-          /* Serial.print("Rep: "); */
-          /* Serial.println(matrixRepresentation[y*fieldWidth + x]); */
           int minoRep = matrixRepresentation[y*fieldWidth + x];
           if (minoRep == 0 || minoRep == 1 || minoRep == 10) {
             // This slot is empty, so we don't queue this row
@@ -358,8 +349,6 @@ class TetrisEngine {
         }
 
         if (queueThisRow) {
-          /* Serial.print("QUEUED: "); */
-          /* Serial.println(y); */
           rowsRemovedThisIteration++;
           rowsToRemove[currentInd] = y;
           currentInd++;
@@ -502,9 +491,6 @@ class TetrisEngine {
     bool isBlockedOut() {
       // This is a game over condition that occurs when a newly generated piece overlaps
       // with another piece.
-      if (isCollisionDetected(currentX, currentY, orientation)) {
-        Serial.println("BLOCKED OUT");
-      }
       return isCollisionDetected(currentX, currentY, orientation);
     }
 
@@ -520,7 +506,7 @@ class TetrisEngine {
       for (int y = 0; y < currentDimension; y++) {
         for (int x = 0; x < currentDimension; x++) {
           if (currentPiece -> orientations[orientation][y][x] == 1) {
-            if (currentY + y > BUFFER_ZONE_HEIGHT) {
+            if (currentY + y >= BUFFER_ZONE_HEIGHT) {
               // This mino is in the game field, so there's no lockout
               return false;
             }
@@ -528,7 +514,6 @@ class TetrisEngine {
         }
       }
 
-      Serial.println("LOCKED OUT");
       return true;
     }
 
@@ -562,7 +547,7 @@ class TetrisEngine {
       // Modifies currentY, lockingDownAt, lastDrop, and rowsSoftDroppedThisPiece
       if (canPieceFall()) {
         // No collision, actually drop
-        rowsSoftDroppedThisPiece += gameController.downHeld ? 1 : 0;
+        rowsSoftDroppedThisPiece += (gameController.downHeld && (currentTime - lastSoftDropAt) > softDropSpeed) ? 1 : 0;
         currentY++;
         lastDrop = currentTime;
         lockingDownAt = -1;
@@ -580,6 +565,7 @@ class TetrisEngine {
 
     bool checkIfSquareIsOccupied(int x, int y) {
       int indToCheck = (y*fieldWidth) + x;
+      /* return matrixRepresentation[indToCheck] > 0 && matrixRepresentation[indToCheck] < 10; */
       return matrixRepresentation[indToCheck] != 0 && matrixRepresentation[indToCheck] != 10;
     }
 
@@ -745,9 +731,13 @@ class TetrisEngine {
       }
 
 
-      if (!justLocked) {
-        drawGhostOnBoard();
-      }
+      /* if (justLocked) { */
+      /*   for (int i = 0; i < 3; i++) { */
+      /*     pastGhostCoordinates[i] = -1; */
+      /*   } */
+      /*   /1* drawGhostOnBoard(); *1/ */
+      /* } */
+      /* drawGhostOnBoard(); */
       drawPieceOnBoard();
 
       if (justLocked) {

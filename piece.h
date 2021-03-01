@@ -8,6 +8,7 @@
 
 
 struct Tetromino {
+  char symbol;
   int symbolNum;
   int dimension;
   int orientations[4][4][4];
@@ -15,6 +16,7 @@ struct Tetromino {
 };
 
 struct Tetromino TPiece = {
+  'T',
   2,
   3,
   {
@@ -88,6 +90,7 @@ struct Tetromino TPiece = {
 };
 
 struct Tetromino SPiece = {
+  'S',
   3,
   3,
   {
@@ -161,6 +164,7 @@ struct Tetromino SPiece = {
 };
 
 struct Tetromino ZPiece = {
+  'Z',
   4,
   3,
   {
@@ -234,6 +238,7 @@ struct Tetromino ZPiece = {
 };
 
 struct Tetromino IPiece = {
+  'I',
   5,
   4,
   {
@@ -311,6 +316,7 @@ struct Tetromino IPiece = {
 };
 
 struct Tetromino LPiece = {
+  'L',
   6,
   3,
   {
@@ -384,6 +390,7 @@ struct Tetromino LPiece = {
 };
 
 struct Tetromino JPiece = {
+  'J',
   7,
   3,
   {
@@ -457,6 +464,7 @@ struct Tetromino JPiece = {
 };
 
 struct Tetromino OPiece = {
+  'O',
   8,
   3,
   {

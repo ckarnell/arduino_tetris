@@ -403,7 +403,6 @@ void drawNumber(long long* originalNum, int y) {
 
   while (startX >= 0) {
     numToDraw = num % 10;
-    Serial.println(numToDraw);
     color = color == DIM ? BRIGHT : DIM;
     drawDigit(numToDraw, startX, y, color);
     num /= 10;

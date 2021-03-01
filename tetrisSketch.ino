@@ -34,15 +34,58 @@ void setup() {
 }
 
 bool firstIteration = true;
-unsigned char *matrixRepresentationCopy = nullptr;
 unsigned long gameOverAt;
 long timeBeforeSleep = 60000;
+
+int ghostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 
 
 struct Controls controls;
 int newGamePushed = false;
 int newGameReleased = false;
 long long highScore = 0;
+bool shouldDrawGhost = true;
+
+void drawGhost() {
+  // Undraw the last ghost
+  if (!shouldDrawGhost) {
+    return;
+  }
+
+  int ghostColor = matrix.Color333(1, 1, 2);
+
+  for (int i = 0; i < 4; i++) {
+    if (ghostInds[i][0] != -1) {
+       if (tetrisEngine.matrixRepresentation[ghostInds[i][1]*tetrisEngine.fieldWidth + ghostInds[i][0]] == 0) {
+         drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3);
+       }
+       ghostInds[i][0] = -1;
+       ghostInds[i][1] = -1;
+    }
+  }
+
+  /* int newGhostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}}; */
+
+  // Draw the ghost
+  int currentGhostInd = 0;
+  int currentGhostY = tetrisEngine.getYModifierAfterHardDrop() + tetrisEngine.currentY;
+  for (int y = 0; y < tetrisEngine.currentPiece -> dimension; y++) {
+    for (int x = 0; x < tetrisEngine.currentPiece -> dimension; x++) {
+      int minoRepresentation = tetrisEngine.currentPiece -> orientations[tetrisEngine.orientation][y][x];
+      if (minoRepresentation == 1) {
+        if (tetrisEngine.matrixRepresentation[(currentGhostY + y)*tetrisEngine.fieldWidth + (x + tetrisEngine.currentX)] == 0) {
+          drawSquareNew(x + tetrisEngine.currentX, currentGhostY + y, ghostColor, 3);
+          ghostInds[currentGhostInd][0] = x + tetrisEngine.currentX;
+          ghostInds[currentGhostInd][1] = currentGhostY + y;
+          /* newGhostInds[currentGhostInd][0] = x + tetrisEngine.currentX; */
+          /* newGhostInds[currentGhostInd][1] = currentGhostY + y; */
+          currentGhostInd++;
+        }
+      }
+    }
+  }
+}
+
 
 
 void loop() {
@@ -84,9 +127,9 @@ void loop() {
     int lineOffset = 1;
     int highestY = currentY + lineOffset*4 + wordHeightOffset*5;
 
-    newDrawLine(0, currentY - 1, matrix.height() - 1, currentY - 1, matrix.Color333(2, 2, 2));
-    newDrawLine(0, highestY, matrix.height() - 1, highestY, matrix.Color333(2, 2, 2));
     newFillRect(0, currentY, matrix.height(), highestY - currentY, matrix.Color333(0, 0, 0));
+    newDrawLine(0, currentY - 1, matrix.height() - 1, currentY - 1, matrix.Color333(2, 2, 2));
+    newDrawLine(0, highestY-1, matrix.height() - 1, highestY-1, matrix.Color333(2, 2, 2));
 
     currentY += lineOffset;
 
@@ -141,7 +184,6 @@ void loop() {
      gameOverDrawn = false;
      if 
      (firstIteration) {
-        long long fakeScore = 12345678; // DEBUG
         tetrisEngine.prepareNewGame();
 
         // Draw border
@@ -162,6 +204,7 @@ void loop() {
 
     if (tetrisEngine.generationThisIteration) {
       // Print next pieces
+      drawGhost();
       clearNextPieces();
       for (int i = 0; i < 5; i++) {
         Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
@@ -198,6 +241,8 @@ void loop() {
 
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
+      drawGhost();
+
       for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
         for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
           int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
@@ -214,7 +259,35 @@ void loop() {
         }
       }
     } else if (tetrisEngine.drawThisIteration) {
-      // Draw the ghost
+      drawGhost();
+      /* // Undraw the last ghost */
+      /* for (int i = 0; i < 4; i++) { */
+      /*   if (ghostInds[i][0] != -1) { */
+      /*      if (tetrisEngine.matrixRepresentation[ghostInds[i][1]*tetrisEngine.fieldWidth + ghostInds[i][0]] == 0) { */
+      /*        drawSquareNew(ghostInds[i][0], ghostInds[i][1], matrix.Color333(0, 0, 0), 3); */
+      /*      } */
+      /*      ghostInds[i][0] = -1; */
+      /*      ghostInds[i][1] = -1; */
+      /*   } */
+      /* } */
+
+      /* // Draw the ghost */
+      /* int currentGhostInd = 0; */
+      /* int currentGhostY = tetrisEngine.getYModifierAfterHardDrop() + tetrisEngine.currentY; */
+      /* for (int y = 0; y < tetrisEngine.currentPiece -> dimension; y++) { */
+      /*   for (int x = 0; x < tetrisEngine.currentPiece -> dimension; x++) { */
+      /*     int minoRepresentation = tetrisEngine.currentPiece -> orientations[tetrisEngine.orientation][y][x]; */
+      /*     if (minoRepresentation == 1) { */
+      /*       if (tetrisEngine.matrixRepresentation[(currentGhostY + y)*tetrisEngine.fieldWidth + (x + tetrisEngine.currentX)] == 0) { */
+      /*         drawSquareNew(x + tetrisEngine.currentX, currentGhostY + y, matrix.Color333(1, 1, 1), 3); */
+      /*         ghostInds[currentGhostInd][0] = x + tetrisEngine.currentX; */
+      /*         ghostInds[currentGhostInd][1] = currentGhostY + y; */
+      /*         currentGhostInd++; */
+      /*       } */
+      /*     } */
+      /*   } */
+      /* } */
+
 
       // Draw the new piece area
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
