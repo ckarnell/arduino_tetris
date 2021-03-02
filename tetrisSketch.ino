@@ -61,7 +61,30 @@ void drawGhost() {
     return;
   }
 
-  int ghostColor = matrix.Color333(1, 1, 2);
+  int ghostColor = matrix.Color333(1, 1, 1);
+  switch (tetrisEngine.currentPiece -> symbol) {
+    case 'J':
+      ghostColor = matrix.Color333(0, 0, 1);
+      break;
+    case 'O':
+      ghostColor = matrix.Color333(2, 1, 0);
+      break;
+    case 'Z':
+      ghostColor = matrix.Color333(1, 0, 0);
+      break;
+    case 'S':
+      ghostColor = matrix.Color333(0, 1, 0);
+      break;
+    case 'I':
+      ghostColor = matrix.Color333(0, 1, 2);
+      break;
+    case 'T':
+      ghostColor = matrix.Color333(1, 0, 2);
+      break;
+    case 'L':
+      ghostColor = matrix.Color333(2, 1, 0);
+      break;
+  }
 
   int newGhostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 
@@ -176,22 +199,6 @@ void loop() {
     /* newDrawLine(0, currentY, matrix.height() - 1, currentY, matrix.Color333(2, 2, 2)); */
   }
 
-  /* if (gameOver && !gameOverDrawn) { */
-  /*   highScore = tetrisEngine.score > highScore ? tetrisEngine.score : highScore; */
-  /*   gameOverDrawn = true; */
-
-  /*   clearBottom(); // TODO: Move game over and delete */
-  /*   drawGameOver(0); */
-  /*   int scoreHeight = 32; */
-  /*   int scoreTitleOffset = 7; */
-  /*   int currentY = 32; */
-  /*   drawNumber(&tetrisEngine.score, scoreHeight + 1); */
-  /*   newFillRect(0, scoreHeight, matrix.height(), 7 + 6, matrix.Color333(0, 0, 0)); */
-  /*   newDrawLine(0, scoreHeight + scoreTitleOffset + 6, matrix.height() - 1, scoreHeight + scoreTitleOffset + 6, matrix.Color333(2, 2, 2)); */
-  /*   newDrawLine(0, scoreHeight - 1, matrix.height() - 1, scoreHeight - 1, matrix.Color333(2, 2, 2)); */
-  /*   drawScore(scoreHeight + scoreTitleOffset); */
-  /* } */
-
   if (gameOver) {
     firstIteration = true;
     if (newGameReleased) {
@@ -199,7 +206,7 @@ void loop() {
       gameOver = false;
     }
     if (millis() - gameOverAt > timeBeforeSleep) {
-      // Go into a "sleep mode" after a few minutes to save energy
+      // Go into a "sleep mode" after some time
       clearMatrix();
     }
   }
@@ -216,7 +223,7 @@ void loop() {
         matrix.drawLine(3, matrix.height()-1, matrix.width()-1, matrix.height() - 1, matrix.Color333(2, 2, 2));
 
         clearBottom();
-        
+
         // Draw line separating new pieces from help piece display
         newDrawLine(5, 0, 5, 2, matrix.Color333(2, 2, 2));
         /* matrix.drawLine(0, 8, 6, 8, matrix.Color333(2, 2, 2)); */
@@ -282,7 +289,6 @@ void loop() {
       }
       drawGhost();
     } else if (tetrisEngine.drawThisIteration) {
-      drawGhost();
 
       // Draw the new piece area
       for (int i = 0; i < INDICES_TO_DRAW_LENGTH && tetrisEngine.indicesToDraw[i] != -1; i++) {
@@ -295,6 +301,8 @@ void loop() {
          int currentColor = colorMap[currentColorInd];
          drawSquareNew(x, y, currentColor, 3);
       }
+
+      drawGhost();
     }
 
     firstIteration = false;

@@ -33,7 +33,7 @@ struct TSpinInfo {
 class TetrisEngine {
   public:
     /* PieceBag bag; */
-    GameController gameController = GameController(300);
+    GameController gameController = GameController(250);
     Tetromino* currentPiece;
     PieceBag bag;
 
@@ -796,6 +796,7 @@ class TetrisEngine {
       firstIteration = true;
       justLocked = false;
       bag.createNewBagOrder(true);
+      bag.currentIndex = 0;
 
       pieceHeldThisIteration = false;
       pieceHeldThisPieceFall = false;
