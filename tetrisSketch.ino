@@ -4,14 +4,17 @@
 // Random seed
 #define seed A9
 
-// Buttons
-#define counterClockwiseButton 45
-#define clockwiseButton 47
-#define upButton 40
-#define leftButton 38
-#define rightButton 36
-#define downButton 34
-#define holdButton 53
+/* // Buttons */
+#define upButton 23
+#define rightButton 22
+#define downButton 2
+#define leftButton 3
+#define counterClockwiseButton 4
+#define flipButton 6
+#define clockwiseButton 5
+#define holdButton 8
+#define startButton 12
+#define selectButton 13
 
 TetrisEngine tetrisEngine = TetrisEngine();
 
@@ -26,11 +29,14 @@ void setup() {
   randomSeed(analogRead(seed));
   pinMode(clockwiseButton, INPUT);
   pinMode(counterClockwiseButton, INPUT);
-  pinMode(upButton, INPUT_PULLUP);
+  pinMode(upButton, INPUT);
   pinMode(leftButton, INPUT);
   pinMode(rightButton, INPUT);
   pinMode(downButton, INPUT);
   pinMode(holdButton, INPUT);
+  pinMode(flipButton, INPUT);
+  pinMode(startButton, INPUT);
+  pinMode(selectButton, INPUT);
 }
 
 bool firstIteration = true;
@@ -43,8 +49,13 @@ int ghostInds[4][2] = {{-1, -1}, {-1, -1}, {-1, -1}, {-1, -1}};
 struct Controls controls;
 int newGamePushed = false;
 int newGameReleased = false;
+
+int ghostSettingsPushed = false;
+int ghostSettingsReleased = false;
+
 long long highScore = 0;
 bool shouldDrawGhost = true;
+bool shouldDrawPiece = true;
 
 void drawGhost() {
   // Undraw the last ghost
@@ -135,18 +146,53 @@ void drawGhost() {
 
 
 
+// Print next pieces
+void printNextPieces() {
+  drawGhost();
+  clearNextPieces();
+  for (int i = 0; i < 5; i++) {
+    Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
+
+    for (int y = 0; y < nextPiece -> dimension; y++) {
+      for (int x = 0; x < nextPiece -> dimension; x++) {
+        if (nextPiece -> orientations[0][y][x] == 1) {
+          int adjustedX = x + matrix.height() - 5 - 5*i;
+          newDrawPixel(adjustedX, 1-y, colorMap[nextPiece -> symbolNum]);
+          /* int xOffset = 5; */
+          /* if (nextPiece -> symbolNum == 8) */
+          /*   xOffset = -1; */
+          /* drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 1, xOffset); */
+        /* } */
+        }
+      }
+    }
+  }
+}
+
 void loop() {
   int upValue = digitalRead(upButton);
   int leftValue = digitalRead(leftButton);
   int rightValue = digitalRead(rightButton);
   int downValue = digitalRead(downButton);
   int holdValue = digitalRead(holdButton);
+  int flipValue = digitalRead(flipButton);
+  int startValue = digitalRead(startButton);
+  int selectValue = digitalRead(selectButton);
 
   int clockwiseButtonValue = digitalRead(clockwiseButton); // 1 when pushed, 0 otherwise
   int counterClockwiseButtonValue = digitalRead(counterClockwiseButton); // 1 when pushed, 0 otherwise
 
-  if (gameOver && !newGamePushed) {
-    newGamePushed = counterClockwiseButtonValue == 1;
+  if (gameOver && !ghostSettingsPushed && flipValue == 1) {
+    ghostSettingsPushed = true;
+  }
+
+  if (gameOver && ghostSettingsPushed && flipValue == 0) {
+    ghostSettingsPushed = false;
+    ghostSettingsReleased = true;
+  }
+
+  if (gameOver && !newGamePushed && counterClockwiseButtonValue == 1) {
+    newGamePushed = true;
   }
 
   if (gameOver && newGamePushed && counterClockwiseButtonValue == 0) {
@@ -161,8 +207,10 @@ void loop() {
     downValue, // Down
     clockwiseButtonValue == 1, // Clockwise
     counterClockwiseButtonValue == 1, // Counter clockwise
-    false, // Rotate 180
+    flipValue, // Rotate 180
     holdValue, // Hold
+    selectValue, // Select
+    startValue, // Start
   };
 
   if (gameOver && !gameOverDrawn) {
@@ -194,6 +242,10 @@ void loop() {
 
 
     drawGameOver(currentY);
+
+    if (!shouldDrawGhost) {
+      newDrawPixel(matrix.height()-1, matrix.width()-1, matrix.Color333(7, 0, 3));
+    }
     /* currentY += wordHeightOffset; */
 
     /* newDrawLine(0, currentY, matrix.height() - 1, currentY, matrix.Color333(2, 2, 2)); */
@@ -204,6 +256,16 @@ void loop() {
     if (newGameReleased) {
       newGameReleased = false;
       gameOver = false;
+    } else if (ghostSettingsReleased) {
+      ghostSettingsReleased = false;
+      shouldDrawGhost = !shouldDrawGhost;
+      shouldDrawPiece = !shouldDrawPiece;
+
+      if (!shouldDrawGhost) {
+        newDrawPixel(matrix.height()-1, matrix.width()-1, matrix.Color333(7, 0, 3));
+      } else {
+        newDrawPixel(matrix.height()-1, matrix.width()-1, matrix.Color333(2, 2, 2));
+      }
     }
     if (millis() - gameOverAt > timeBeforeSleep) {
       // Go into a "sleep mode" after some time
@@ -233,27 +295,8 @@ void loop() {
       gameOverAt = millis();
     }
 
-    if (tetrisEngine.generationThisIteration) {
-      // Print next pieces
-      drawGhost();
-      clearNextPieces();
-      for (int i = 0; i < 5; i++) {
-        Tetromino* nextPiece = tetrisEngine.bag.getFuturePiece(i + 1);
-        
-        for (int y = 0; y < nextPiece -> dimension; y++) {
-          for (int x = 0; x < nextPiece -> dimension; x++) {
-            if (nextPiece -> orientations[0][y][x] == 1) {
-              int adjustedX = x + matrix.height() - 5 - 5*i;
-              newDrawPixel(adjustedX, 1-y, colorMap[nextPiece -> symbolNum]);
-              /* int xOffset = 5; */
-              /* if (nextPiece -> symbolNum == 8) */
-              /*   xOffset = -1; */
-              /* drawSquareNew(x + 13 - 4*i, y + tetrisEngine.fieldHeight - 1, colorMap[nextPiece -> symbolNum], 1, xOffset); */
-            /* } */
-            }
-          }
-        }
-      }
+    if (tetrisEngine.generationThisIteration || (tetrisEngine.pieceHeldThisIteration && !tetrisEngine.pieceHeldThisGame)) {
+      printNextPieces();
     }
 
     if (tetrisEngine.pieceHeldThisIteration) {
@@ -268,7 +311,41 @@ void loop() {
           }
         }
       }
+
+      /* if (!tetrisEngine.pieceHeldThisGame) { */
+      /*   // We had to generate a new piece since this is the first hold of the game, */
+      /*   // so we need to redraw held pieces. */
+      /*   printNextPieces(); */
+      /* } */
     }
+
+    /* if (tetrisEngine.justLocked && !shouldDrawPiece) { */
+    /*   /1* for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) { *1/ */
+    /*   /1*   for(int x = 0; x < tetrisEngine.fieldWidth; x++) { *1/ */
+    /*   /1*     int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x]; *1/ */
+
+
+    /*   /1*     int currentColorInd = currentNum; *1/ */
+    /*   /1*     if (currentNum == CURRENT_PIECE_CHAR) { *1/ */
+    /*   /1*       if (shouldDrawPiece) { *1/ */
+    /*   /1*         currentColorInd = tetrisEngine.currentPiece -> symbolNum; *1/ */
+    /*   /1*       } else { *1/ */
+    /*   /1*         // Draw black if we don't want to draw the current piece *1/ */
+    /*   /1*         currentColorInd = 0; *1/ */
+    /*   /1*       } *1/ */
+    /*   /1*     } *1/ */
+    /*   /1*     /2* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; *2/ *1/ */
+    /*   /1*     int currentColor = colorMap[currentColorInd]; *1/ */
+          
+    /*   /1*     if (currentColor != 1) { // Don't draw borders *1/ */
+    /*   /1*       drawSquareNew(x, y, currentColor, 3); *1/ */
+    /*   /1*     }// else { *1/ */
+  /* /1* //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7)); *1/ */
+  /* /1* //        } *1/ */
+    /*   /1*   } *1/ */
+    /*   /1* } *1/ */
+    /*   /1* drawGhost(); *1/ */
+    /* } */
 
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
@@ -277,7 +354,16 @@ void loop() {
           int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
 
   
-          int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum;
+          int currentColorInd = currentNum;
+          if (currentNum == CURRENT_PIECE_CHAR) {
+            if (shouldDrawPiece || tetrisEngine.gameController.dropPressed) {
+              currentColorInd = tetrisEngine.currentPiece -> symbolNum;
+            } else {
+              // Draw black if we don't want to draw the current piece
+              currentColorInd = 0;
+            }
+          }
+          /* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; */
           int currentColor = colorMap[currentColorInd];
           
           if (currentColor != 1) { // Don't draw borders
@@ -297,7 +383,19 @@ void loop() {
          int y = (indexToDraw - x) / tetrisEngine.fieldWidth;
           
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
-         int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum;
+         int currentColorInd = currentNum;
+         if (currentNum == CURRENT_PIECE_CHAR) {
+           if (shouldDrawPiece || tetrisEngine.gameController.dropPressed) {
+             currentColorInd = tetrisEngine.currentPiece -> symbolNum;
+           } else {
+             // Draw black if we don't want to draw the current piece
+             currentColorInd = 0;
+           }
+         }
+
+         /* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; */
+         /* int currentColor = colorMap[currentColorInd]; */
+         /* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; */
          int currentColor = colorMap[currentColorInd];
          drawSquareNew(x, y, currentColor, 3);
       }

@@ -6,13 +6,17 @@ struct Controls {
   bool down;
   bool rotateClockwise;
   bool rotateCounterClockwise;
-  bool rotate180;
+  bool flip;
   bool hold;
+  bool select;
+  bool start;
 };
 
 class GameController {
   public:
     bool leftPressed;
+    bool selectPressed = false;
+    bool startPressed = false;
     bool rightPressed;
     bool leftDas;
     bool rightDas;
@@ -21,6 +25,7 @@ class GameController {
     bool clockwisePressed = false;
     bool holdPressed = false;
     bool counterClockwisePressed = false;
+    bool flipPressed = false;
 
     GameController(int dasDelay) {
       _dasDelay = dasDelay;
@@ -39,6 +44,8 @@ class GameController {
     }
 
     void updateControls(Controls controls, int currentTime) {
+      selectPressed = controls.select;
+      startPressed = controls.start;
       downHeld = controls.down;
 
       if (controls.left) {
@@ -123,6 +130,18 @@ class GameController {
         dropPressed = false;
       }
 
+      if (controls.flip) {
+        if (!flipHeld) {
+          flipHeld = true;
+          flipPressed = true;
+        } else {
+          flipPressed = false;
+        }
+      } else {
+        flipHeld = false;
+        flipPressed = false;
+      }
+
       if (controls.hold) {
         if (!holdHeld) {
           holdPressed = true;
@@ -144,5 +163,6 @@ class GameController {
     int holdHeld = false;
     int counterClockwiseHeld;
     bool dropHeld = false;
+    int flipHeld = false;
     int _dasDelay;
 };

@@ -379,7 +379,6 @@ class TetrisEngine {
         return;
       }
 
-      pieceHeldThisGame = true;
 
       // Save the held piece, generate a new piece and reset state
       heldPiece = currentPiece;
@@ -394,6 +393,16 @@ class TetrisEngine {
         return yToDrop;
     }
 
+    void checkForPauseAndSelect() {
+      if (gameController.selectPressed) {
+        gameOver = true;
+        return;
+      }
+
+      if (gameController.startPressed) {
+        // TODO: Implement pausing
+      }
+    }
     void rotateAndMove() {
       if (gameController.dropPressed) {
         // Set currentY to the lowest Y below the current piece that is not occupied
@@ -464,6 +473,34 @@ class TetrisEngine {
         if (potentialNewOrientation < 0) {
           potentialNewOrientation = 3;
         }
+
+        // Iterate through the possible ways we can rotate the piece until we find one or don't
+        for (int i = 0; i < 4 && !foundFittingPosition; i++) {
+          /* cout << possibleRotations[i][0] << possibleRotations[i][1] << endl; */
+          /* , currentX + currentPiece -> possibleRotations[i][0], currentY + currentPiece -> possibleRotations[i][1] */
+          foundFittingPosition = !isCollisionDetected(
+              currentX + currentPiece -> offsets[orientation][0][i][0],
+              currentY + currentPiece -> offsets[orientation][0][i][1],
+              potentialNewOrientation
+          );
+
+          if (foundFittingPosition) {
+            indexOfWorkingRotation = i;
+          }
+        }
+
+        if (foundFittingPosition) {
+          currentX += currentPiece -> offsets[orientation][0][indexOfWorkingRotation][0];
+          currentY += currentPiece -> offsets[orientation][0][indexOfWorkingRotation][1];
+          orientation = potentialNewOrientation;
+        }
+      }
+
+      if (gameController.flipPressed) {
+        bool foundFittingPosition = false;
+        int indexOfWorkingRotation = 0;
+
+        int potentialNewOrientation = (orientation + 2) % 4;
 
         // Iterate through the possible ways we can rotate the piece until we find one or don't
         for (int i = 0; i < 4 && !foundFittingPosition; i++) {
@@ -695,7 +732,11 @@ class TetrisEngine {
       drawThisIteration = false;
       indForIndicesToDraw = 0;
       generationThisIteration = false;
-      pieceHeldThisIteration = false;
+      if (pieceHeldThisIteration) {
+        pieceHeldThisIteration = false;
+        pieceHeldThisGame = true;
+      }
+
       rowsRemovedThisIteration = 0;
 
       for (int x = 0; x < 10; x++)
@@ -725,19 +766,16 @@ class TetrisEngine {
 
       // Update and respond to input
       gameController.updateControls(controls, currentTime);
+      checkForPauseAndSelect();
+
       if (!justLocked) {
         handleHold();
+        if (gameOver) {
+          return gameOver;
+        }
         rotateAndMove();
       }
 
-
-      /* if (justLocked) { */
-      /*   for (int i = 0; i < 3; i++) { */
-      /*     pastGhostCoordinates[i] = -1; */
-      /*   } */
-      /*   /1* drawGhostOnBoard(); *1/ */
-      /* } */
-      /* drawGhostOnBoard(); */
       drawPieceOnBoard();
 
       if (justLocked) {
