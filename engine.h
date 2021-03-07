@@ -49,6 +49,7 @@ class TetrisEngine {
     unsigned long lastSoftDropAt = 0;
     int rowsToRemove[4] = {-1, -1, -1, -1};
     int lastDraw = currentTime - 1001;
+    bool shouldDrawPiece = true;
     bool gameOver = false;
     bool firstIteration = true;
     bool drawAllThisIteration = false;
@@ -178,7 +179,14 @@ class TetrisEngine {
         for (int x = 0; x < currentDimension; x++) {
           int minoRepresentation = currentPiece -> orientations[orientation][y][x];
           if (minoRepresentation == 1) {
-            int charToDraw = justLocked ? currentPiece -> symbolNum : CURRENT_PIECE_CHAR;
+            int charToDraw = CURRENT_PIECE_CHAR;
+
+            if (justLocked && !shouldDrawPiece) {
+              // Since we're not drawing the piece while falling, make sure to draw it when it's locked
+              addIndexToDraw((y + currentY)*fieldWidth + (x + currentX));
+              charToDraw = currentPiece -> symbolNum;
+            }
+
             matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = charToDraw;
             int pastCoord = justLocked ? -1 : (y + currentY)*fieldWidth + (x + currentX);
             newPastCoordinates[pastCoordInd] = pastCoord;
@@ -826,8 +834,9 @@ class TetrisEngine {
       }
     }
 
-    void prepareNewGame() {
+    void prepareNewGame(bool shouldDrawPieceThisGame) {
       // Reset state
+      shouldDrawPiece = shouldDrawPieceThisGame;
       gameOver = false;
       rowsThisLevel = 0;
       createNewPlayField();

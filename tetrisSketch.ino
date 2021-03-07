@@ -169,6 +169,33 @@ void printNextPieces() {
   }
 }
 
+void printWholeBoard() {
+  for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
+    for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
+      int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
+
+
+      int currentColorInd = currentNum;
+      if (currentNum == CURRENT_PIECE_CHAR) {
+        if (shouldDrawPiece || tetrisEngine.gameController.dropPressed || firstIteration) {
+          currentColorInd = tetrisEngine.currentPiece -> symbolNum;
+        } else {
+          // Draw black if we don't want to draw the current piece
+          currentColorInd = 0;
+        }
+      }
+      /* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; */
+      int currentColor = colorMap[currentColorInd];
+      
+      if (currentColor != 1) { // Don't draw borders
+        drawSquareNew(x, y, currentColor, 3);
+      }// else {
+  //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
+  //        }
+    }
+  }
+}
+
 void loop() {
   int upValue = digitalRead(upButton);
   int leftValue = digitalRead(leftButton);
@@ -277,7 +304,7 @@ void loop() {
      gameOverDrawn = false;
      if 
      (firstIteration) {
-        tetrisEngine.prepareNewGame();
+        tetrisEngine.prepareNewGame(shouldDrawPiece);
 
         // Draw border
         newDrawLine(0, 4, 0, matrix.width()-1, matrix.Color333(2, 2, 2));
@@ -319,60 +346,33 @@ void loop() {
       /* } */
     }
 
-    /* if (tetrisEngine.justLocked && !shouldDrawPiece) { */
-    /*   /1* for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) { *1/ */
-    /*   /1*   for(int x = 0; x < tetrisEngine.fieldWidth; x++) { *1/ */
-    /*   /1*     int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x]; *1/ */
-
-
-    /*   /1*     int currentColorInd = currentNum; *1/ */
-    /*   /1*     if (currentNum == CURRENT_PIECE_CHAR) { *1/ */
-    /*   /1*       if (shouldDrawPiece) { *1/ */
-    /*   /1*         currentColorInd = tetrisEngine.currentPiece -> symbolNum; *1/ */
-    /*   /1*       } else { *1/ */
-    /*   /1*         // Draw black if we don't want to draw the current piece *1/ */
-    /*   /1*         currentColorInd = 0; *1/ */
-    /*   /1*       } *1/ */
-    /*   /1*     } *1/ */
-    /*   /1*     /2* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; *2/ *1/ */
-    /*   /1*     int currentColor = colorMap[currentColorInd]; *1/ */
-          
-    /*   /1*     if (currentColor != 1) { // Don't draw borders *1/ */
-    /*   /1*       drawSquareNew(x, y, currentColor, 3); *1/ */
-    /*   /1*     }// else { *1/ */
-  /* /1* //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7)); *1/ */
-  /* /1* //        } *1/ */
-    /*   /1*   } *1/ */
-    /*   /1* } *1/ */
-    /*   /1* drawGhost(); *1/ */
-    /* } */
-
     // Print board
     if (tetrisEngine.drawAllThisIteration) {
-      for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) {
-        for(int x = 0; x < tetrisEngine.fieldWidth; x++) {
-          int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x];
+      printWholeBoard();
+      /* for(int y = BUFFER_ZONE_HEIGHT; y < tetrisEngine.fieldHeight; y++) { */
+      /*   for(int x = 0; x < tetrisEngine.fieldWidth; x++) { */
+      /*     int currentNum = tetrisEngine.matrixRepresentation[y*tetrisEngine.fieldWidth + x]; */
 
   
-          int currentColorInd = currentNum;
-          if (currentNum == CURRENT_PIECE_CHAR) {
-            if (shouldDrawPiece || tetrisEngine.gameController.dropPressed) {
-              currentColorInd = tetrisEngine.currentPiece -> symbolNum;
-            } else {
-              // Draw black if we don't want to draw the current piece
-              currentColorInd = 0;
-            }
-          }
-          /* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; */
-          int currentColor = colorMap[currentColorInd];
+      /*     int currentColorInd = currentNum; */
+      /*     if (currentNum == CURRENT_PIECE_CHAR) { */
+      /*       if (shouldDrawPiece || tetrisEngine.gameController.dropPressed || firstIteration) { */
+      /*         currentColorInd = tetrisEngine.currentPiece -> symbolNum; */
+      /*       } else { */
+      /*         // Draw black if we don't want to draw the current piece */
+      /*         currentColorInd = 0; */
+      /*       } */
+      /*     } */
+      /*     /1* int currentColorInd = currentNum == CURRENT_PIECE_CHAR ? tetrisEngine.currentPiece -> symbolNum : currentNum; *1/ */
+      /*     int currentColor = colorMap[currentColorInd]; */
           
-          if (currentColor != 1) { // Don't draw borders
-            drawSquareNew(x, y, currentColor, 3);
-          }// else {
-  //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7));
-  //        }
-        }
-      }
+      /*     if (currentColor != 1) { // Don't draw borders */
+      /*       drawSquareNew(x, y, currentColor, 3); */
+      /*     }// else { */
+  /* //          matrix.drawPixel(0, 0, matrix.Color333(7, 7, 7)); */
+  /* //        } */
+      /*   } */
+      /* } */
       drawGhost();
     } else if (tetrisEngine.drawThisIteration) {
 
@@ -385,7 +385,7 @@ void loop() {
          int currentNum = tetrisEngine.matrixRepresentation[indexToDraw];
          int currentColorInd = currentNum;
          if (currentNum == CURRENT_PIECE_CHAR) {
-           if (shouldDrawPiece || tetrisEngine.gameController.dropPressed) {
+           if (shouldDrawPiece || tetrisEngine.gameController.dropPressed || firstIteration) {
              currentColorInd = tetrisEngine.currentPiece -> symbolNum;
            } else {
              // Draw black if we don't want to draw the current piece
