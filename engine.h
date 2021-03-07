@@ -33,7 +33,7 @@ struct TSpinInfo {
 class TetrisEngine {
   public:
     /* PieceBag bag; */
-    GameController gameController = GameController(250);
+    GameController gameController = GameController(133);
     Tetromino* currentPiece;
     PieceBag bag;
 
@@ -44,7 +44,7 @@ class TetrisEngine {
 
     int currentTime = millis();
     unsigned long lastDasAt = 0;
-    int dasSpeed = 30;
+    int dasSpeed = 10;
     int softDropSpeed = 30;
     unsigned long lastSoftDropAt = 0;
     int rowsToRemove[4] = {-1, -1, -1, -1};
