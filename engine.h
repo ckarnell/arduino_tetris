@@ -45,13 +45,14 @@ class TetrisEngine {
     int currentTime = millis();
     unsigned long lastDasAt = 0;
     int dasSpeed = 10;
-    int softDropSpeed = 30;
+    int softDropSpeed = 10;
     unsigned long lastSoftDropAt = 0;
     int rowsToRemove[4] = {-1, -1, -1, -1};
     int lastDraw = currentTime - 1001;
     bool shouldDrawPiece = true;
     bool gameOver = false;
     bool firstIteration = true;
+    bool firstPiece = true;
     bool drawAllThisIteration = false;
     bool drawThisIteration = false;
     bool generationThisIteration;
@@ -179,12 +180,11 @@ class TetrisEngine {
         for (int x = 0; x < currentDimension; x++) {
           int minoRepresentation = currentPiece -> orientations[orientation][y][x];
           if (minoRepresentation == 1) {
-            int charToDraw = CURRENT_PIECE_CHAR;
+            int charToDraw = justLocked ? currentPiece -> symbolNum : CURRENT_PIECE_CHAR;
 
             if (justLocked && !shouldDrawPiece) {
               // Since we're not drawing the piece while falling, make sure to draw it when it's locked
               addIndexToDraw((y + currentY)*fieldWidth + (x + currentX));
-              charToDraw = currentPiece -> symbolNum;
             }
 
             matrixRepresentation[(y + currentY)*fieldWidth + (x + currentX)] = charToDraw;
@@ -751,6 +751,11 @@ class TetrisEngine {
         indicesToDraw[x] = -1;
 
       currentTime = millis();
+
+      if (justLocked) {
+        firstPiece = false;
+      }
+
       if (justLocked || firstIteration) {
         generationThisIteration = true;
         generation();
@@ -836,6 +841,7 @@ class TetrisEngine {
 
     void prepareNewGame(bool shouldDrawPieceThisGame) {
       // Reset state
+      firstPiece = true;
       shouldDrawPiece = shouldDrawPieceThisGame;
       gameOver = false;
       rowsThisLevel = 0;
